@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Minimal Runtime Axiom -- Full Paper</title>
+  <meta name="description" content="Runtime is proof of ignorance. A 25-page type-theoretic formalization of the compile-time/runtime boundary.">
+  <meta property="og:title" content="The Minimal Runtime Axiom -- Full Paper">
+  <meta property="og:description" content="Runtime is proof of ignorance. A 25-page type-theoretic formalization.">
+  <meta property="og:image" content="https://minimal-runtime-axiom.vercel.app/og-image.png">
+  <meta property="og:url" content="https://minimal-runtime-axiom.vercel.app/paper.html">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Minimal Runtime Axiom -- Full Paper">
+  <meta name="twitter:image" content="https://minimal-runtime-axiom.vercel.app/og-image.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+  MathJax = {
+    tex: {
+      inlineMath: [['\\(', '\\)']],
+      displayMath: [['\\[', '\\]']],
+      processEscapes: true
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg-surface: #141922;
+      --bg-code: #1a1f2e;
+      --border: #1e293b;
+      --border-accent: #f97316;
+      --text: #e0e0e8;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #f97316;
+      --accent-glow: rgba(249, 115, 22, 0.12);
+      --link: #f97316;
+      --link-hover: #fb923c;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 17px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Top bar */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 14, 23, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-bar a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .top-bar a:hover { color: var(--accent); }
+    .top-bar .bar-title {
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .top-bar-links { display: flex; gap: 1.5rem; align-items: center; }
+    .top-bar-links .pdf-btn {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .top-bar-links .pdf-btn:hover { color: #fff; opacity: 0.9; }
+
+    /* Layout with sidebar */
+    .page-layout {
+      display: flex;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Sidebar TOC */
+    .sidebar {
+      position: sticky;
+      top: 60px;
+      width: 280px;
+      min-width: 280px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      padding: 2rem 1.25rem 2rem 1.5rem;
+      border-right: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .sidebar .toc-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+    .sidebar nav ul { list-style: none; padding-left: 0; }
+    .sidebar nav ul ul { padding-left: 1rem; }
+    .sidebar nav li { margin-bottom: 0.15rem; }
+    .sidebar nav a {
+      display: block;
+      padding: 0.25rem 0.5rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .sidebar nav a:hover {
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .sidebar nav .toc-section-number {
+      display: inline-block;
+      width: 2em;
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 0.78rem;
+    }
+
+    /* Main content */
+    .paper-content {
+      flex: 1;
+      min-width: 0;
+      max-width: 720px;
+      padding: 3rem 2.5rem 6rem 3rem;
+    }
+
+    /* Paper header */
+    .paper-header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .paper-header h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .paper-header .paper-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .paper-header .paper-meta {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    .paper-header .paper-meta .author-name {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .paper-header .paper-meta a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Abstract */
+    .abstract {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 3rem;
+    }
+    .abstract .abstract-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .abstract p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* Headings */
+    h1[data-number], h2[data-number], h3[data-number], h4[data-number] {
+      scroll-margin-top: 80px;
+    }
+    h1[data-number] {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-top: 3.5rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: -0.02em;
+    }
+    h2[data-number] {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    h3[data-number] {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    h4[data-number] {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      font-style: italic;
+    }
+    .header-section-number {
+      color: var(--accent);
+      margin-right: 0.5rem;
+    }
+
+    /* Paragraphs */
+    p { margin: 1em 0; }
+
+    /* Links */
+    a { color: var(--link); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--link-hover); }
+
+    /* Theorem-like environments */
+    .definition, .theorem, .lemma, .corollary, .proposition, .axiom, .remark, .example {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .definition { border-left: 3px solid #60a5fa; }
+    .theorem, .lemma, .proposition { border-left: 3px solid #a78bfa; }
+    .corollary { border-left: 3px solid #34d399; }
+    .axiom { border-left: 3px solid var(--accent); }
+    .remark { border-left: 3px solid var(--text-dim); }
+    .example { border-left: 3px solid #fbbf24; }
+    .proof {
+      margin: 1rem 0;
+      padding: 1rem 1.5rem;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.88em;
+      line-height: 1.6;
+    }
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.88em;
+    }
+    :not(pre) > code {
+      background: var(--bg-code);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      color: #f97316;
+    }
+
+    /* Syntax highlighting - dark theme overrides */
+    code span.al { color: #ff6b6b; font-weight: bold; }
+    code span.an { color: #94a3b8; font-weight: bold; font-style: italic; }
+    code span.at { color: #a3e635; }
+    code span.bn { color: #4ade80; }
+    code span.bu { color: #22d3ee; }
+    code span.cf { color: #c084fc; font-weight: bold; }
+    code span.ch { color: #fbbf24; }
+    code span.cn { color: #fb923c; }
+    code span.co { color: #64748b; font-style: italic; }
+    code span.cv { color: #64748b; font-weight: bold; font-style: italic; }
+    code span.do { color: #64748b; font-style: italic; }
+    code span.dt { color: #38bdf8; }
+    code span.dv { color: #4ade80; }
+    code span.er { color: #ff6b6b; font-weight: bold; }
+    code span.fl { color: #4ade80; }
+    code span.fu { color: #60a5fa; }
+    code span.im { color: #22d3ee; font-weight: bold; }
+    code span.in { color: #94a3b8; font-weight: bold; font-style: italic; }
+    code span.kw { color: #c084fc; font-weight: bold; }
+    code span.op { color: #94a3b8; }
+    code span.ot { color: #22d3ee; }
+    code span.pp { color: #f97316; }
+    code span.sc { color: #fbbf24; }
+    code span.ss { color: #fbbf24; }
+    code span.st { color: #4ade80; }
+    code span.va { color: #e0e0e8; }
+    code span.vs { color: #4ade80; }
+    code span.wa { color: #fbbf24; font-weight: bold; font-style: italic; }
+    pre.numberSource code > span > a:first-child::before { color: var(--text-dim); }
+    pre.numberSource { border-left: 1px solid var(--border); margin-left: 0; }
+    div.sourceCode { background: var(--bg-code); border-radius: 8px; border: 1px solid var(--border); }
+
+    /* Math */
+    .math.display { overflow-x: auto; padding: 0.5rem 0; }
+    mjx-container[display="true"] { overflow-x: auto; max-width: 100%; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.92rem;
+      display: block;
+      overflow-x: auto;
+    }
+    thead { background: var(--bg-surface); }
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      white-space: nowrap;
+    }
+    td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:nth-child(even) { background: rgba(20, 25, 34, 0.5); }
+    tbody tr:hover { background: var(--accent-glow); }
+
+    /* Lists */
+    ol, ul { padding-left: 1.5em; margin: 0.75em 0; }
+    li { margin: 0.4em 0; }
+    li > ol, li > ul { margin-top: 0.25em; }
+
+    /* Blockquotes */
+    blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 0.75rem 1.5rem;
+      margin: 1.5rem 0;
+      background: var(--bg-surface);
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p { color: var(--text-muted); font-style: italic; }
+
+    /* Mobile toggle */
+    .toc-toggle {
+      display: none;
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 200;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
+    }
+    .mobile-toc-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 150;
+    }
+
+    /* Mobile */
+    @media (max-width: 900px) {
+      .sidebar {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        z-index: 160;
+        background: var(--bg);
+        width: 300px;
+        border-right: 1px solid var(--border);
+      }
+      .sidebar.open { display: block; }
+      .mobile-toc-overlay.open { display: block; }
+      .toc-toggle { display: flex; align-items: center; justify-content: center; }
+      .paper-content {
+        max-width: 100%;
+        padding: 2rem 1.25rem 5rem 1.25rem;
+      }
+      .top-bar { padding: 0.75rem 1rem; }
+      .top-bar .bar-title { display: none; }
+    }
+    @media (max-width: 480px) {
+      body { font-size: 16px; }
+      .paper-header h1 { font-size: 1.8rem; }
+      .paper-header .paper-subtitle { font-size: 1rem; }
+      h1[data-number] { font-size: 1.5rem; }
+      h2[data-number] { font-size: 1.2rem; }
+      pre { padding: 1rem; font-size: 0.82em; }
+      .abstract { padding: 1rem 1.25rem; }
+      .definition, .theorem, .lemma, .corollary, .proposition, .axiom, .remark, .example {
+        padding: 1rem 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <a href="index.html">&#8592; Back to Home</a>
+    <span class="bar-title">The Minimal Runtime Axiom</span>
+    <div class="top-bar-links">
+      <a href="minimal-runtime-axiom.pdf" class="pdf-btn">Download PDF</a>
+    </div>
+  </div>
+
+  <!-- Mobile TOC toggle -->
+  <button class="toc-toggle" onclick="toggleToc()" aria-label="Table of contents">&#9776;</button>
+  <div class="mobile-toc-overlay" onclick="toggleToc()"></div>
+
+  <div class="page-layout">
+    <!-- Sidebar TOC -->
+    <aside class="sidebar" id="sidebar">
+      <div class="toc-title">Contents</div>
+      <nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#sec:introduction" id="toc-sec:introduction"><span
+class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#sec:decision-space" id="toc-sec:decision-space"><span
+class="toc-section-number">2</span> The Decision Space of a
+Program</a></li>
+<li><a href="#sec:axiom" id="toc-sec:axiom"><span
+class="toc-section-number">3</span> The Axiom: Compile-Time
+Supremacy</a></li>
+<li><a href="#sec:witnesses" id="toc-sec:witnesses"><span
+class="toc-section-number">4</span> Static Witnesses</a>
+<ul>
+<li><a href="#type-safety" id="toc-type-safety"><span
+class="toc-section-number">4.1</span> Type Safety</a></li>
+<li><a href="#null-safety" id="toc-null-safety"><span
+class="toc-section-number">4.2</span> Null Safety</a></li>
+<li><a href="#memory-safety" id="toc-memory-safety"><span
+class="toc-section-number">4.3</span> Memory Safety</a></li>
+<li><a href="#effect-safety" id="toc-effect-safety"><span
+class="toc-section-number">4.4</span> Effect Safety</a></li>
+<li><a href="#protocol-safety" id="toc-protocol-safety"><span
+class="toc-section-number">4.5</span> Protocol Safety</a></li>
+</ul></li>
+<li><a href="#sec:corollary1" id="toc-sec:corollary1"><span
+class="toc-section-number">5</span> Corollary 1: Runtime
+Irreducibility</a></li>
+<li><a href="#sec:corollary2" id="toc-sec:corollary2"><span
+class="toc-section-number">6</span> Corollary 2: The Duality</a>
+<ul>
+<li><a href="#dynamic-dispatch-to-monomorphization"
+id="toc-dynamic-dispatch-to-monomorphization"><span
+class="toc-section-number">6.1</span> Dynamic Dispatch to
+Monomorphization</a></li>
+<li><a href="#garbage-collection-to-ownership"
+id="toc-garbage-collection-to-ownership"><span
+class="toc-section-number">6.2</span> Garbage Collection to
+Ownership</a></li>
+<li><a href="#exception-handling-to-result-types"
+id="toc-exception-handling-to-result-types"><span
+class="toc-section-number">6.3</span> Exception Handling to Result
+Types</a></li>
+</ul></li>
+<li><a href="#sec:corollary3" id="toc-sec:corollary3"><span
+class="toc-section-number">7</span> Corollary 3: The Yoneda
+Correspondence</a></li>
+<li><a href="#sec:hierarchy" id="toc-sec:hierarchy"><span
+class="toc-section-number">8</span> The Decision Transfer Hierarchy</a>
+<ul>
+<li><a href="#proof-time" id="toc-proof-time"><span
+class="toc-section-number">8.1</span> Proof Time</a></li>
+<li><a href="#type-check-time" id="toc-type-check-time"><span
+class="toc-section-number">8.2</span> Type-Check Time</a></li>
+<li><a href="#compile-time" id="toc-compile-time"><span
+class="toc-section-number">8.3</span> Compile Time</a></li>
+<li><a href="#link-time" id="toc-link-time"><span
+class="toc-section-number">8.4</span> Link Time</a></li>
+<li><a href="#connection-to-futamura-projections"
+id="toc-connection-to-futamura-projections"><span
+class="toc-section-number">8.5</span> Connection to Futamura
+Projections</a></li>
+</ul></li>
+<li><a href="#sec:language-design" id="toc-sec:language-design"><span
+class="toc-section-number">9</span> Applications to Language Design</a>
+<ul>
+<li><a href="#effect-system-transferring-io-decisions"
+id="toc-effect-system-transferring-io-decisions"><span
+class="toc-section-number">9.1</span> Effect System: Transferring I/O
+Decisions</a></li>
+<li><a href="#ownership-system-transferring-memory-decisions"
+id="toc-ownership-system-transferring-memory-decisions"><span
+class="toc-section-number">9.2</span> Ownership System: Transferring
+Memory Decisions</a></li>
+<li><a
+href="#pattern-matching-exhaustiveness-transferring-dispatch-decisions"
+id="toc-pattern-matching-exhaustiveness-transferring-dispatch-decisions"><span
+class="toc-section-number">9.3</span> Pattern Matching Exhaustiveness:
+Transferring Dispatch Decisions</a></li>
+<li><a
+href="#type-derived-serialization-transferring-wire-format-decisions"
+id="toc-type-derived-serialization-transferring-wire-format-decisions"><span
+class="toc-section-number">9.4</span> Type-Derived Serialization:
+Transferring Wire Format Decisions</a></li>
+<li><a href="#supervision-trees-transferring-failure-policy-decisions"
+id="toc-supervision-trees-transferring-failure-policy-decisions"><span
+class="toc-section-number">9.5</span> Supervision Trees: Transferring
+Failure Policy Decisions</a></li>
+</ul></li>
+<li><a href="#sec:agent-arch" id="toc-sec:agent-arch"><span
+class="toc-section-number">10</span> Applications to Agent
+Architecture</a>
+<ul>
+<li><a href="#agent-capability-as-a-type"
+id="toc-agent-capability-as-a-type"><span
+class="toc-section-number">10.1</span> Agent Capability as a
+Type</a></li>
+<li><a href="#tool-authorization-as-a-static-witness"
+id="toc-tool-authorization-as-a-static-witness"><span
+class="toc-section-number">10.2</span> Tool Authorization as a Static
+Witness</a></li>
+<li><a href="#memory-schema-as-compile-time-structure"
+id="toc-memory-schema-as-compile-time-structure"><span
+class="toc-section-number">10.3</span> Memory Schema as Compile-Time
+Structure</a></li>
+</ul></li>
+<li><a href="#sec:related" id="toc-sec:related"><span
+class="toc-section-number">11</span> Comparison with Related
+Frameworks</a>
+<ul>
+<li><a href="#partial-evaluation-theory"
+id="toc-partial-evaluation-theory"><span
+class="toc-section-number">11.1</span> Partial Evaluation
+Theory</a></li>
+<li><a href="#multi-stage-programming"
+id="toc-multi-stage-programming"><span
+class="toc-section-number">11.2</span> Multi-Stage Programming</a></li>
+<li><a href="#dependent-type-theory"
+id="toc-dependent-type-theory"><span
+class="toc-section-number">11.3</span> Dependent Type Theory</a></li>
+<li><a href="#gradual-typing" id="toc-gradual-typing"><span
+class="toc-section-number">11.4</span> Gradual Typing</a></li>
+<li><a href="#rusts-zero-cost-abstractions"
+id="toc-rusts-zero-cost-abstractions"><span
+class="toc-section-number">11.5</span> Rust’s Zero-Cost
+Abstractions</a></li>
+</ul></li>
+<li><a href="#sec:impossibility" id="toc-sec:impossibility"><span
+class="toc-section-number">12</span> The Impossibility Boundary</a>
+<ul>
+<li><a href="#connection-to-the-halting-problem"
+id="toc-connection-to-the-halting-problem"><span
+class="toc-section-number">12.1</span> Connection to the Halting
+Problem</a></li>
+<li><a href="#connection-to-srip" id="toc-connection-to-srip"><span
+class="toc-section-number">12.2</span> Connection to SRIP</a></li>
+</ul></li>
+<li><a href="#sec:category-theory" id="toc-sec:category-theory"><span
+class="toc-section-number">13</span> Formalization in Category
+Theory</a>
+<ul>
+<li><a href="#the-decision-category"
+id="toc-the-decision-category"><span
+class="toc-section-number">13.1</span> The Decision Category</a></li>
+<li><a href="#the-static-and-runtime-subcategories"
+id="toc-the-static-and-runtime-subcategories"><span
+class="toc-section-number">13.2</span> The Static and Runtime
+Subcategories</a></li>
+<li><a href="#the-axiom-as-an-adjunction"
+id="toc-the-axiom-as-an-adjunction"><span
+class="toc-section-number">13.3</span> The Axiom as an
+Adjunction</a></li>
+<li><a href="#the-yoneda-embedding-as-maximal-static-characterization"
+id="toc-the-yoneda-embedding-as-maximal-static-characterization"><span
+class="toc-section-number">13.4</span> The Yoneda Embedding as Maximal
+Static Characterization</a></li>
+<li><a href="#the-decision-functor" id="toc-the-decision-functor"><span
+class="toc-section-number">13.5</span> The Decision Functor</a></li>
+</ul></li>
+<li><a href="#sec:conclusion" id="toc-sec:conclusion"><span
+class="toc-section-number">14</span> Conclusion</a></li>
+</ul>
+</nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="paper-content">
+      <!-- Paper header -->
+      <div class="paper-header">
+        <h1>The Minimal Runtime Axiom</h1>
+        <div class="paper-subtitle">
+          Runtime Is Proof of Ignorance:<br>
+          A Type-Theoretic and Category-Theoretic Formalization
+          of the Compile-Time/Runtime Boundary
+        </div>
+        <div class="paper-meta">
+          <span class="author-name">Matthew Long</span><br>
+          <em>The YonedaAI Collaboration</em> &middot; <em>YonedaAI Research Collective</em><br>
+          Chicago, IL &middot; <a href="mailto:matthew@yonedaai.com">matthew@yonedaai.com</a><br>
+          <span style="color: var(--text-dim);">March 2026</span>
+        </div>
+      </div>
+
+      <!-- Abstract -->
+      <div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>We formalize the principle that <em>runtime is proof of
+ignorance</em>: every decision that a program defers to runtime exists
+precisely because the type system—or more broadly, the static reasoning
+apparatus—failed to capture it at compile time. We introduce the
+<strong>Minimal Runtime Axiom</strong>, which states that the runtime
+decision set of a program <span class="math inline">\(P\)</span> is
+exactly the complement of the compile-time decidable set: <span
+class="math inline">\(\mathcal{R}(P)= \mathcal{D}(P)\setminus
+\mathcal{C}(P)\)</span>, where <span
+class="math inline">\(\mathcal{C}(P)\)</span> consists of all decisions
+admitting a <em>static witness</em> <span class="math inline">\(w_d=
+(\tau, \pi, \sigma)\)</span>—a type <span
+class="math inline">\(\tau\)</span>, a proof term <span
+class="math inline">\(\pi\)</span> inhabiting that type, and a staging
+certificate <span class="math inline">\(\sigma\)</span> guaranteeing
+that <span class="math inline">\(\pi\)</span> is constructible before
+execution. We derive three corollaries: (1) <strong>Runtime
+Irreducibility</strong>—a decision is legitimately runtime if and only
+if it depends on <span class="math inline">\(\omega\text{-data}\)</span>
+(user input, I/O, time, nondeterminism); (2) <strong>The
+Duality</strong>—the cardinality of the runtime set is proportional to
+the epistemic deficit of the type system; (3) <strong>The Yoneda
+Correspondence</strong>—runtime type inspection is isomorphic to failure
+of the Yoneda embedding. We develop the full category-theoretic
+treatment, demonstrate applications to language design through the JAPL
+programming language, and characterize the impossibility boundary
+imposed by <span class="math inline">\(\omega\text{-data}\)</span>
+through connections to the halting problem and Rice’s theorem. The axiom
+provides language designers with a precise criterion: <em>every
+non-<span class="math inline">\(\omega\)</span> decision at runtime is a
+theorem waiting to be proven</em>.</p>
+</div>
+
+      <!-- Paper body -->
+      <h1 data-number="1" id="sec:introduction"><span
+class="header-section-number">1</span> Introduction</h1>
+<p>The history of programming language design is, in large part, the
+history of moving decisions from runtime to compile time. This transfer
+has been the central animating force behind type systems, static
+analysis, formal verification, and the entire enterprise of programming
+language theory.</p>
+<p>In the earliest days of computing, <em>everything</em> was a runtime
+decision. Assembly language programs performed all type dispatch, memory
+management, error handling, and protocol negotiation dynamically. The
+machine had no opinion about the meaning of a bit pattern; that was the
+programmer’s responsibility, enforced only by hope and
+documentation.</p>
+<p>The introduction of high-level languages began the great migration.
+FORTRAN moved numeric type dispatch to compile time. C moved function
+signatures and basic type compatibility. ML and Haskell moved parametric
+polymorphism, algebraic data type exhaustiveness, and many forms of
+error handling. Rust moved memory management, data race prevention, and
+lifetime reasoning. Dependent type systems in Idris, Agda, and Lean
+moved array bounds checking, protocol adherence, and arithmetic
+invariants.</p>
+<p>Each of these advances can be understood as a single motion: the
+construction of a <em>static witness</em> that renders a runtime check
+unnecessary. When ML’s type checker proves that a function application
+is well-typed, it has constructed a witness that eliminates the need for
+runtime type dispatch. When Rust’s borrow checker proves that references
+do not outlive their referents, it has constructed a witness that
+eliminates the need for garbage collection or manual deallocation.</p>
+<p>This paper formalizes this observation as the <strong>Minimal Runtime
+Axiom</strong>: the runtime decision set of any program is exactly the
+set of decisions for which no static witness can be constructed. We
+develop the formal apparatus—decision spaces, static witnesses, staging
+certificates—and derive three corollaries that characterize the nature
+of runtime, the relationship between type system expressiveness and
+runtime overhead, and the categorical structure underlying the
+compile-time/runtime boundary.</p>
+<p>The axiom is not a theorem in the traditional sense; it is a
+<em>design principle</em>, akin to the Church-Turing thesis. It cannot
+be proven from more primitive axioms because it defines what we
+<em>mean</em> by optimal language design. But like the Church-Turing
+thesis, it unifies a vast body of existing work under a single principle
+and provides a generative framework for future research.</p>
+<p>We organize the paper as follows. defines the decision space of a
+program. states the axiom formally. develops the theory of static
+witnesses. present the three corollaries. describes the decision
+transfer hierarchy. apply the axiom to language design and agent
+architecture. surveys related work. characterizes the impossibility
+boundary. develops the full categorical formalization. concludes.</p>
+<h1 data-number="2" id="sec:decision-space"><span
+class="header-section-number">2</span> The Decision Space of a
+Program</h1>
+<div class="definition">
+<p><strong>Definition 1</strong> (Decision). <em> A <em>decision</em>
+<span class="math inline">\(d\)</span> in a program <span
+class="math inline">\(P\)</span> is any point in the execution where the
+program’s behavior depends on a choice among alternatives. Formally,
+<span class="math inline">\(d\)</span> is a function <span
+class="math inline">\(d : \Sigma \to A\)</span> from the program state
+space <span class="math inline">\(\Sigma\)</span> to an action space
+<span class="math inline">\(A\)</span> with <span
+class="math inline">\(|A| \geq 2\)</span>.</em></p>
+</div>
+<div class="definition">
+<p><strong>Definition 2</strong> (Decision Space). <em> The <em>decision
+space</em> <span class="math inline">\(\mathcal{D}(P)\)</span> of a
+program <span class="math inline">\(P\)</span> is the set of all
+decisions that must be resolved during the lifecycle of <span
+class="math inline">\(P\)</span>: <span
+class="math display">\[\mathcal{D}(P)= \{ d_1, d_2, \ldots, d_n
+\}\]</span> where each <span class="math inline">\(d_i\)</span> is a
+decision as defined above.</em></p>
+</div>
+<p>The decision space encompasses a remarkably wide range of program
+behaviors. We categorize the most significant classes:</p>
+<h4 data-number="2.0.0.1" id="type-dispatch."><span
+class="header-section-number">2.0.0.1</span> Type Dispatch.</h4>
+<p>When a program must determine the concrete type of a value to select
+behavior—e.g., virtual method dispatch, pattern matching on variants,
+<code>instanceof</code> checks—each such point constitutes a
+decision.</p>
+<h4 data-number="2.0.0.2" id="memory-layout-and-lifetime."><span
+class="header-section-number">2.0.0.2</span> Memory Layout and
+Lifetime.</h4>
+<p>When to allocate, where to allocate (stack vs. heap), when to
+deallocate, and how to manage shared references are all decisions. In C,
+most of these are runtime. In Rust, most are compile-time.</p>
+<h4 data-number="2.0.0.3" id="null-and-option-handling."><span
+class="header-section-number">2.0.0.3</span> Null and Option
+Handling.</h4>
+<p>Every nullable reference introduces a decision: is this reference
+null? Languages with <code>Option&lt;T&gt;</code> and exhaustive pattern
+matching transfer this decision to compile time.</p>
+<h4 data-number="2.0.0.4" id="bounds-checking."><span
+class="header-section-number">2.0.0.4</span> Bounds Checking.</h4>
+<p>Array access <span class="math inline">\(a[i]\)</span> introduces the
+decision: is <span class="math inline">\(i\)</span> within bounds? In
+most languages this is runtime. With dependent types, it can be
+compile-time:</p>
+<pre
+data-caption="Bounds checking as a compile-time decision in JAPL"><code>fn safe_index&lt;N: Nat&gt;(arr: Vec&lt;T, N&gt;, i: Fin&lt;N&gt;) -&gt; T {
+  // No bounds check needed: i : Fin&lt;N&gt; is a proof that i &lt; N
+  arr.get_unchecked(i)
+}</code></pre>
+<h4 data-number="2.0.0.5" id="protocol-compatibility."><span
+class="header-section-number">2.0.0.5</span> Protocol
+Compatibility.</h4>
+<p>Network protocols, API contracts, and serialization formats all
+involve decisions about compatibility. Session types transfer these to
+compile time.</p>
+<h4 data-number="2.0.0.6" id="resource-lifetime."><span
+class="header-section-number">2.0.0.6</span> Resource Lifetime.</h4>
+<p>File handles, network connections, database transactions—when to
+acquire and release resources involves decisions that linear types can
+capture statically.</p>
+<h4 data-number="2.0.0.7" id="effect-handling."><span
+class="header-section-number">2.0.0.7</span> Effect Handling.</h4>
+<p>Whether a function performs I/O, throws exceptions, spawns threads,
+or allocates memory are decisions that effect systems transfer to
+compile time.</p>
+<div class="definition">
+<p><strong>Definition 3</strong> (<span
+class="math inline">\(\omega\)</span>-Dependent and <span
+class="math inline">\(\omega\)</span>-Independent Decisions). <em> A
+decision <span class="math inline">\(d \in \mathcal{D}(P)\)</span> is
+<em><span class="math inline">\(\omega\)</span>-dependent</em> if it
+depends on data not available until runtime: user input, I/O results,
+sensor data, current time, or nondeterministic choice. Otherwise, <span
+class="math inline">\(d\)</span> is <em><span
+class="math inline">\(\omega\)</span>-independent</em>.</em></p>
+</div>
+<div class="remark">
+<p><strong>Remark 4</strong>. <em>The distinction between <span
+class="math inline">\(\omega\)</span>-dependent and <span
+class="math inline">\(\omega\)</span>-independent decisions is the
+fundamental partition of <span
+class="math inline">\(\mathcal{D}(P)\)</span>. As we shall see, <span
+class="math inline">\(\omega\)</span>-independent decisions are
+precisely those that <em>could</em>, in principle, be transferred to
+compile time.</em></p>
+</div>
+<div class="example">
+<p><strong>Example 5</strong> (Decision Space of a Web Server).
+<em>Consider a web server program <span
+class="math inline">\(P_{\text{web}}\)</span>. Its decision space
+includes:</em></p>
+<ul>
+<li><p><em><strong><span
+class="math inline">\(\omega\)</span>-dependent</strong>: Which URL is
+requested? What are the request headers? What is the database
+state?</em></p></li>
+<li><p><em><strong><span
+class="math inline">\(\omega\)</span>-independent</strong>: Is the URL
+handler well-typed? Are all database queries type-safe? Will the
+response be properly serialized? Are resources properly
+released?</em></p></li>
+</ul>
+<p><em>A language satisfying the Minimal Runtime Axiom would transfer
+<em>all</em> <span class="math inline">\(\omega\)</span>-independent
+decisions to compile time, leaving only the genuinely dynamic decisions
+at runtime.</em></p>
+</div>
+<h1 data-number="3" id="sec:axiom"><span
+class="header-section-number">3</span> The Axiom: Compile-Time
+Supremacy</h1>
+<p>We now state the central principle of this paper.</p>
+<div class="axiom">
+<p><strong>Axiom 1</strong> (The Minimal Runtime Axiom). <em> For any
+program <span class="math inline">\(P\)</span>, the <em>minimal runtime
+decision set</em> is: <span class="math display">\[\mathcal{R}(P)=
+\mathcal{D}(P)\setminus \mathcal{C}(P)\]</span> where <span
+class="math inline">\(\mathcal{C}(P)= \{ d \in \mathcal{D}(P)\mid
+\exists\, w_d= (\tau, \pi, \sigma) \}\)</span> is the set of decisions
+admitting a static witness. A language design is <em>optimal with
+respect to the axiom</em> if no decision in <span
+class="math inline">\(\mathcal{R}(P)\)</span> admits a static
+witness—that is, if every decision remaining at runtime is genuinely
+irreducible.</em></p>
+</div>
+<p>Several aspects of this formulation deserve comment.</p>
+<h4 data-number="3.0.0.1" id="why-axiom-and-not-theorem"><span
+class="header-section-number">3.0.0.1</span> Why “Axiom” and Not
+“Theorem”?</h4>
+<p>The Minimal Runtime Axiom is not derivable from more primitive
+principles. It is a <em>design principle</em>—a statement about what we
+believe optimal language design should achieve. In this respect, it is
+analogous to the Church-Turing thesis: it cannot be proven, but it can
+be supported by evidence, and it can be used generatively to discover
+new static analysis techniques.</p>
+<h4 data-number="3.0.0.2" id="the-residual-set."><span
+class="header-section-number">3.0.0.2</span> The Residual Set.</h4>
+<p>The set <span class="math inline">\(\mathcal{R}(P)\)</span>
+represents the <em>irreducible runtime core</em> of a program. For any
+fixed type system, <span class="math inline">\(\mathcal{C}(P)\)</span>
+is determined, and hence <span
+class="math inline">\(\mathcal{R}(P)\)</span> is determined. But as type
+systems grow more expressive, <span
+class="math inline">\(\mathcal{C}(P)\)</span> grows, and <span
+class="math inline">\(\mathcal{R}(P)\)</span> shrinks. The axiom asserts
+that the ideal endpoint is the minimum possible <span
+class="math inline">\(\mathcal{R}(P)\)</span>—which, as we show in ,
+consists exactly of <span
+class="math inline">\(\omega\)</span>-dependent decisions.</p>
+<h4 data-number="3.0.0.3" id="the-pragmatic-dimension."><span
+class="header-section-number">3.0.0.3</span> The Pragmatic
+Dimension.</h4>
+<p>In practice, language designers must balance expressiveness against
+complexity. Dependent type systems can transfer more decisions to
+compile time than simple type systems, but at the cost of more complex
+type annotations and proof obligations. The axiom does not mandate
+dependent types; it provides a <em>metric</em> for evaluating language
+design choices. Each decision remaining at runtime should be justified:
+either it is genuinely <span
+class="math inline">\(\omega\)</span>-dependent, or it is a deliberate
+trade-off between type system complexity and runtime cost.</p>
+<div class="remark">
+<p><strong>Remark 6</strong> (The Economy of Ignorance). <em> The axiom
+as stated is a <em>normative ideal</em>, not a pragmatic mandate. In
+practice, constructing a static witness <span
+class="math inline">\(w_d\)</span> incurs a <em>proof burden</em>—the
+human effort to encode invariants as types and supply proof terms. When
+the cost of constructing <span class="math inline">\(w_d\)</span>
+exceeds the cost of the runtime check it eliminates, a rational language
+designer may choose to leave the decision at runtime. We call this the
+<em>economy of ignorance</em>: sometimes it is cheaper to be ignorant.
+The axiom remains valuable as a metric—it tells us <em>what</em> we are
+paying for and <em>why</em>—even when full optimization is impractical.
+The pragmatic version of the axiom is: <em>every non-<span
+class="math inline">\(\omega\)</span> decision at runtime should be a
+conscious, costed trade-off, not an accidental oversight</em>.</em></p>
+</div>
+<div class="proposition">
+<p><strong>Proposition 7</strong> (Monotonicity). <em> If type system
+<span class="math inline">\(T_1\)</span> is strictly more expressive
+than type system <span class="math inline">\(T_2\)</span> (i.e., <span
+class="math inline">\(\mathcal{C}_{T_2}(P) \subset
+\mathcal{C}_{T_1}(P)\)</span> for all <span
+class="math inline">\(P\)</span>), then <span
+class="math inline">\(\mathcal{R}_{T_1}(P) \subset
+\mathcal{R}_{T_2}(P)\)</span> for all <span
+class="math inline">\(P\)</span>. More expressive type systems yield
+smaller runtime sets.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> By set complementation: if <span
+class="math inline">\(\mathcal{C}_{T_2}(P) \subset
+\mathcal{C}_{T_1}(P)\)</span>, then <span
+class="math inline">\(\mathcal{D}(P)\setminus \mathcal{C}_{T_1}(P)
+\subset \mathcal{D}(P)\setminus \mathcal{C}_{T_2}(P)\)</span>. ◻</p>
+</div>
+<h1 data-number="4" id="sec:witnesses"><span
+class="header-section-number">4</span> Static Witnesses</h1>
+<p>The notion of a static witness is the technical core of the axiom. We
+develop it in detail.</p>
+<div class="definition">
+<p><strong>Definition 8</strong> (Static Witness). <em> A <em>static
+witness</em> for a decision <span class="math inline">\(d \in
+\mathcal{D}(P)\)</span> is a triple <span class="math inline">\(w_d=
+(\tau, \pi, \sigma)\)</span> where:</em></p>
+<ol>
+<li><p><em><span class="math inline">\(\tau\)</span> is a <em>type</em>
+that encodes the invariant making <span class="math inline">\(d\)</span>
+unnecessary—that is, <span class="math inline">\(\tau\)</span> expresses
+the property that, if established, determines <span
+class="math inline">\(d\)</span>’s outcome without runtime
+inspection.</em></p></li>
+<li><p><em><span class="math inline">\(\pi\)</span> is a <em>proof
+term</em> (an inhabitant of <span class="math inline">\(\tau\)</span>)—a
+concrete construction demonstrating that the invariant
+holds.</em></p></li>
+<li><p><em><span class="math inline">\(\sigma\)</span> is a <em>staging
+certificate</em>—evidence that <span class="math inline">\(\pi\)</span>
+can be constructed <em>before execution</em>, i.e., at compile time,
+type-check time, or proof time. Formally, in the framework of modal
+logic for staged computation <span class="citation"
+data-cites="davies2001modal"></span>, <span
+class="math inline">\(\sigma\)</span> witnesses that <span
+class="math inline">\(\pi\)</span> inhabits a type of the form <span
+class="math inline">\(\Box\,\tau\)</span> (the modal necessity
+operator), indicating that <span class="math inline">\(\pi\)</span> is
+available at <em>all</em> future stages, having been constructed at the
+current (pre-execution) stage. In multi-stage programming systems like
+MetaOCaml, <span class="math inline">\(\sigma\)</span> corresponds to
+the absence of <code>Ref</code> (cross-stage persistence of mutable
+state) in the proof term—i.e., <span class="math inline">\(\pi\)</span>
+is a <em>closed</em> term at stage 0.</em></p></li>
+</ol>
+</div>
+<p>The three components serve distinct purposes. The type <span
+class="math inline">\(\tau\)</span> defines <em>what</em> must be
+proven. The proof term <span class="math inline">\(\pi\)</span>
+demonstrates <em>that</em> it holds. The staging certificate <span
+class="math inline">\(\sigma\)</span> guarantees <em>when</em> the proof
+is available—specifically, that <span class="math inline">\(\pi\)</span>
+is constructible in a phase prior to execution, formalized through the
+modal <span class="math inline">\(\Box\)</span> operator of S4 logic
+applied to the staging hierarchy. Without <span
+class="math inline">\(\sigma\)</span>, we might have a proof that can
+only be constructed at runtime (e.g., a dynamic check), which does not
+eliminate the runtime decision.</p>
+<p>We now present five central examples of static witnesses.</p>
+<h2 data-number="4.1" id="type-safety"><span
+class="header-section-number">4.1</span> Type Safety</h2>
+<div class="example">
+<p><strong>Example 9</strong> (Well-Typed Programs Don’t Go Wrong). <em>
+Consider the decision “does this function application have the correct
+argument type?” <span class="math display">\[\begin{align*}
+  \tau &amp;= \Gamma \vdash e_1\,e_2 : B \quad\text{(the typing
+judgment)} \\
+  \pi &amp;= \text{the type derivation tree} \\
+  \sigma &amp;= \text{the type checker terminates at compile time}
+\end{align*}\]</span> Milner’s slogan “well-typed programs don’t go
+wrong” is precisely the statement that this witness eliminates the need
+for runtime type checks.</em></p>
+</div>
+<h2 data-number="4.2" id="null-safety"><span
+class="header-section-number">4.2</span> Null Safety</h2>
+<div class="example">
+<p><strong>Example 10</strong> (Option Types as Static Witnesses). <em>
+Consider the decision “is this reference null?” <span
+class="math display">\[\begin{align*}
+  \tau &amp;= \texttt{Option&lt;T&gt;} \text{ with exhaustive pattern
+matching} \\
+  \pi &amp;= \text{exhaustiveness proof from the match checker} \\
+  \sigma &amp;= \text{match exhaustiveness is checked at compile time}
+\end{align*}\]</span> In JAPL, the witness is constructed as
+follows:</em></p>
+</div>
+<pre
+data-caption="Null safety through exhaustive matching in JAPL"><code>fn process(value: Option&lt;Config&gt;) -&gt; Result&lt;Output, Error&gt; {
+  match value {
+    Some(config) =&gt; Ok(compute(config)),
+    None =&gt; Err(Error::MissingConfig),
+  }
+  // Exhaustiveness checked at compile time.
+  // No null pointer exception possible.
+}</code></pre>
+<h2 data-number="4.3" id="memory-safety"><span
+class="header-section-number">4.3</span> Memory Safety</h2>
+<div class="example">
+<p><strong>Example 11</strong> (Ownership as Static Witness). <em>
+Consider the decision “when should this memory be freed?” <span
+class="math display">\[\begin{align*}
+  \tau &amp;= \text{linear type / ownership type} \\
+  \pi &amp;= \text{proof that each value has exactly one owner} \\
+  \sigma &amp;= \text{the borrow checker runs at compile time}
+\end{align*}\]</span></em></p>
+</div>
+<pre data-caption="Memory safety through ownership in JAPL"><code>fn transfer(data: Owned&lt;Buffer&gt;) -&gt; Owned&lt;Buffer&gt; {
+  // data is moved here; original binding is invalidated.
+  // Compile-time guarantee: no double-free, no use-after-free.
+  let processed = transform(data);  // Ownership transferred
+  processed  // Ownership returned to caller
+}</code></pre>
+<h2 data-number="4.4" id="effect-safety"><span
+class="header-section-number">4.4</span> Effect Safety</h2>
+<div class="example">
+<p><strong>Example 12</strong> (Effect Types as Static Witnesses). <em>
+Consider the decision “does this function perform I/O?” <span
+class="math display">\[\begin{align*}
+  \tau &amp;= \text{effect row, e.g., } \texttt{fn() -&gt; T / \{IO,
+Async\}} \\
+  \pi &amp;= \text{effect inference derivation} \\
+  \sigma &amp;= \text{effect checking at compile time}
+\end{align*}\]</span></em></p>
+</div>
+<pre data-caption="Effect safety through effect types in JAPL"><code>effect FileSystem {
+  fn read_file(path: String) -&gt; Result&lt;String, IOError&gt;
+  fn write_file(path: String, content: String) -&gt; Result&lt;(), IOError&gt;
+}
+
+// The effect annotation is the static witness:
+// this function&#39;s side effects are fully captured at compile time.
+fn process_data() -&gt; Result&lt;Report, Error&gt; / {FileSystem, Log} {
+  let raw = do FileSystem.read_file(&quot;data.csv&quot;)?;
+  let report = analyze(raw);  // pure: no effect annotation needed
+  do Log.info(&quot;Report generated&quot;);
+  Ok(report)
+}</code></pre>
+<h2 data-number="4.5" id="protocol-safety"><span
+class="header-section-number">4.5</span> Protocol Safety</h2>
+<div class="example">
+<p><strong>Example 13</strong> (Session Types as Static Witnesses). <em>
+Consider the decision “is this protocol message sent in the correct
+order?” <span class="math display">\[\begin{align*}
+  \tau &amp;= \text{session type, e.g., }
+\texttt{!Request.?Response.End} \\
+  \pi &amp;= \text{session type derivation showing protocol adherence}
+\\
+  \sigma &amp;= \text{session type checking at compile time}
+\end{align*}\]</span></em></p>
+</div>
+<pre data-caption="Protocol safety through session types in JAPL"><code>type ClientProtocol = Send&lt;Request&gt; &gt;&gt; Recv&lt;Response&gt; &gt;&gt; Close;
+
+fn client(channel: Channel&lt;ClientProtocol&gt;) -&gt; Result&lt;Response, Error&gt; {
+  let channel = channel.send(Request::new(&quot;query&quot;))?;
+  let (response, channel) = channel.recv()?;
+  channel.close();
+  // Protocol adherence proven at compile time.
+  // Out-of-order messages are type errors, not runtime errors.
+  Ok(response)
+}</code></pre>
+<div class="theorem">
+<p><strong>Theorem 14</strong> (Witness Compositionality). <em> If
+decisions <span class="math inline">\(d_1\)</span> and <span
+class="math inline">\(d_2\)</span> have static witnesses <span
+class="math inline">\(w_{d_1} = (\tau_1, \pi_1, \sigma_1)\)</span> and
+<span class="math inline">\(w_{d_2} = (\tau_2, \pi_2,
+\sigma_2)\)</span>, then the compound decision <span
+class="math inline">\(d_1 \wedge d_2\)</span> has static witness <span
+class="math inline">\(w_{d_1 \wedge d_2} = (\tau_1 \times \tau_2,
+(\pi_1, \pi_2), \sigma_1 \wedge \sigma_2)\)</span>.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> The product type <span class="math inline">\(\tau_1
+\times \tau_2\)</span> encodes both invariants simultaneously. The pair
+<span class="math inline">\((\pi_1, \pi_2)\)</span> inhabits <span
+class="math inline">\(\tau_1 \times \tau_2\)</span> (by the introduction
+rule for product types). The compound staging certificate <span
+class="math inline">\(\sigma_1 \wedge \sigma_2\)</span> holds if both
+<span class="math inline">\(\pi_1\)</span> and <span
+class="math inline">\(\pi_2\)</span> are constructible before execution,
+which obtains by assumption. Thus <span class="math inline">\(w_{d_1
+\wedge d_2}\)</span> satisfies . ◻</p>
+</div>
+<h1 data-number="5" id="sec:corollary1"><span
+class="header-section-number">5</span> Corollary 1: Runtime
+Irreducibility</h1>
+<div class="definition">
+<p><strong>Definition 15</strong> (<span
+class="math inline">\(\omega\)</span>-Data). <em> The <em><span
+class="math inline">\(\omega\)</span>-data</em> of a program execution
+is the totality of information that is not available at any
+pre-execution phase:</em></p>
+<ol>
+<li><p><em><strong>User input</strong>: keystrokes, mouse events, API
+requests</em></p></li>
+<li><p><em><strong>I/O results</strong>: file contents, network
+responses, database query results</em></p></li>
+<li><p><em><strong>Temporal data</strong>: current time, elapsed
+durations, timeouts</em></p></li>
+<li><p><em><strong>Nondeterminism</strong>: random number generation,
+thread scheduling, hardware interrupts</em></p></li>
+<li><p><em><strong>Environmental state</strong>: available memory, CPU
+load, network latency</em></p></li>
+</ol>
+<p><em>We denote the <span class="math inline">\(\omega\)</span>-data of
+an execution as <span class="math inline">\(\omega\)</span>.</em></p>
+</div>
+<div class="corollary">
+<p><strong>Corollary 16</strong> (Runtime Irreducibility). <em> A
+decision <span class="math inline">\(d \in \mathcal{D}(P)\)</span> is
+<em>legitimately runtime</em> (i.e., no static witness can exist for
+<span class="math inline">\(d\)</span>) if and only if <span
+class="math inline">\(d\)</span> depends on <span
+class="math inline">\(\omega\text{-data}\)</span>. Formally: <span
+class="math display">\[d \in \mathcal{R}(P)_{\min} \iff d = f(\omega)
+\text{ for some non-trivial } f\]</span> where <span
+class="math inline">\(\mathcal{R}(P)_{\min}\)</span> is the minimal
+possible runtime set (under an arbitrarily powerful type system) and
+<span class="math inline">\(f\)</span> is non-trivial in the sense that
+different values of <span class="math inline">\(\omega\)</span> yield
+different decisions.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> (<span class="math inline">\(\Rightarrow\)</span>)
+Suppose <span class="math inline">\(d\)</span> does not depend on <span
+class="math inline">\(\omega\text{-data}\)</span>. Then <span
+class="math inline">\(d\)</span> is fully determined by the program text
+<span class="math inline">\(P\)</span> and the compile-time environment.
+In a sufficiently expressive type system (e.g., the Calculus of
+Constructions with induction), we can encode this determination as a
+type <span class="math inline">\(\tau\)</span>, construct the proof term
+<span class="math inline">\(\pi\)</span> at type-check time, and the
+staging certificate <span class="math inline">\(\sigma\)</span> is
+immediate. Thus <span class="math inline">\(d \in
+\mathcal{C}(P)\)</span> and <span class="math inline">\(d \notin
+\mathcal{R}(P)_{\min}\)</span>.</p>
+<p>(<span class="math inline">\(\Leftarrow\)</span>) Suppose <span
+class="math inline">\(d\)</span> depends on <span
+class="math inline">\(\omega\text{-data}\)</span>, i.e., <span
+class="math inline">\(d = f(\omega)\)</span> for non-trivial <span
+class="math inline">\(f\)</span>. By definition, <span
+class="math inline">\(\omega\)</span> is not available before execution.
+Any proof term <span class="math inline">\(\pi\)</span> for <span
+class="math inline">\(\tau\)</span> encoding <span
+class="math inline">\(d\)</span>’s outcome would need to reference <span
+class="math inline">\(\omega\)</span>, but the staging certificate <span
+class="math inline">\(\sigma\)</span> requires <span
+class="math inline">\(\pi\)</span> to be constructible before execution.
+Since <span class="math inline">\(\omega\)</span> is unavailable
+pre-execution, no such <span class="math inline">\(\sigma\)</span> can
+exist. Thus <span class="math inline">\(d \notin \mathcal{C}(P)\)</span>
+and <span class="math inline">\(d \in
+\mathcal{R}(P)_{\min}\)</span>. ◻</p>
+</div>
+<div class="example">
+<p><strong>Example 17</strong> (False Runtime: Decisions Masquerading as
+<span class="math inline">\(\omega\)</span>-Dependent). <em> Many
+decisions that <em>appear</em> to require runtime resolution are
+actually <span
+class="math inline">\(\omega\)</span>-independent:</em></p>
+<ol>
+<li><p><em><strong>Virtual dispatch</strong> on a closed type hierarchy:
+the set of possible types is known at compile time; with whole-program
+analysis or sealed traits, dispatch can be monomorphized.</em></p></li>
+<li><p><em><strong>Null checks</strong> on values that were already
+validated: with flow-sensitive typing or refinement types, the non-null
+invariant can be tracked.</em></p></li>
+<li><p><em><strong>Array bounds checks</strong> with statically known
+indices: with dependent types, the check is compiled away.</em></p></li>
+<li><p><em><strong>Serialization format negotiation</strong> when both
+sides are compiled together: with type-derived codecs, the format is
+determined at compile time.</em></p></li>
+<li><p><em><strong>Garbage collection</strong> pauses: with linear or
+affine types, memory lifetime is statically determined and no GC is
+needed.</em></p></li>
+</ol>
+<p><em>Each of these is a decision currently at runtime in mainstream
+languages that a more expressive type system could transfer to compile
+time.</em></p>
+</div>
+<div class="remark">
+<p><strong>Remark 18</strong>. <em>The Runtime Irreducibility corollary
+provides a precise criterion for evaluating language features: every
+runtime decision should be tested against the question “does this
+genuinely depend on <span
+class="math inline">\(\omega\text{-data}\)</span>?” If not, it is a
+candidate for static elimination.</em></p>
+</div>
+<h1 data-number="6" id="sec:corollary2"><span
+class="header-section-number">6</span> Corollary 2: The Duality</h1>
+<div class="corollary">
+<p><strong>Corollary 19</strong> (The Duality). <em> For a program <span
+class="math inline">\(P\)</span> under type system <span
+class="math inline">\(T\)</span>: <span
+class="math display">\[|\mathcal{R}_T(P)| = |\mathcal{D}(P)| -
+|\mathcal{C}_T(P)| \propto \text{epistemic deficit of } T\]</span> The
+number of runtime decisions is directly proportional to the
+<em>epistemic deficit</em> of the type system—the gap between what the
+type system <em>can</em> express and what <em>could</em> in principle be
+expressed.</em></p>
+</div>
+<p>This corollary transforms the abstract axiom into a concrete tool for
+language comparison. We map specific runtime mechanisms to their
+compile-time counterparts, showing each as a decision transfer:</p>
+<div id="tab:transfer-map">
+<table>
+<caption>The Decision Transfer Map</caption>
+<thead>
+<tr>
+<th style="text-align: left;"><strong>Runtime Mechanism</strong></th>
+<th style="text-align: left;"><strong>Compile-Time
+Transfer</strong></th>
+<th style="text-align: left;"><strong>Witness Type</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Dynamic dispatch</td>
+<td style="text-align: left;">Monomorphization / Type classes</td>
+<td style="text-align: left;">Type instantiation</td>
+</tr>
+<tr>
+<td style="text-align: left;">Null pointer checks</td>
+<td style="text-align: left;">Option types + exhaustiveness</td>
+<td style="text-align: left;">Pattern completeness</td>
+</tr>
+<tr>
+<td style="text-align: left;">Array bounds checks</td>
+<td style="text-align: left;">Dependent types / Fin&lt;N&gt;</td>
+<td style="text-align: left;">Arithmetic proof</td>
+</tr>
+<tr>
+<td style="text-align: left;">Garbage collection</td>
+<td style="text-align: left;">Linear / affine types</td>
+<td style="text-align: left;">Ownership proof</td>
+</tr>
+<tr>
+<td style="text-align: left;">Exception handling</td>
+<td style="text-align: left;">Result types + propagation</td>
+<td style="text-align: left;">Error type tracking</td>
+</tr>
+<tr>
+<td style="text-align: left;">Serialization</td>
+<td style="text-align: left;">Type-derived codecs</td>
+<td style="text-align: left;">Schema derivation</td>
+</tr>
+<tr>
+<td style="text-align: left;">Dynamic linking</td>
+<td style="text-align: left;">Whole-program compilation</td>
+<td style="text-align: left;">Link-time resolution</td>
+</tr>
+<tr>
+<td style="text-align: left;">Reflection</td>
+<td style="text-align: left;">Type classes / higher-kinded</td>
+<td style="text-align: left;">Yoneda embedding</td>
+</tr>
+<tr>
+<td style="text-align: left;">Runtime casts</td>
+<td style="text-align: left;">Generalized algebraic data types</td>
+<td style="text-align: left;">Type equality witness</td>
+</tr>
+<tr>
+<td style="text-align: left;">Capability checks</td>
+<td style="text-align: left;">Effect types / permission types</td>
+<td style="text-align: left;">Capability proof</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>We elaborate on several of these transfers.</p>
+<h2 data-number="6.1" id="dynamic-dispatch-to-monomorphization"><span
+class="header-section-number">6.1</span> Dynamic Dispatch to
+Monomorphization</h2>
+<p>In languages with subtype polymorphism (Java, C++, Python), method
+calls on polymorphic types require virtual dispatch tables consulted at
+runtime. The decision “which implementation to call” is deferred to
+runtime.</p>
+<p>With parametric polymorphism and monomorphization (as in Rust and
+JAPL), the compiler specializes generic functions for each concrete type
+argument, resolving dispatch at compile time:</p>
+<pre
+data-caption="Monomorphization eliminates runtime dispatch in JAPL"><code>trait Serialize {
+  fn to_bytes(self: Ref&lt;Self&gt;) -&gt; Vec&lt;u8&gt;;
+}
+
+// Monomorphized: separate compiled code for each T
+fn send_message&lt;T: Serialize&gt;(msg: Ref&lt;T&gt;) -&gt; Result&lt;(), NetError&gt; / {Network} {
+  let bytes = msg.to_bytes();  // Static dispatch, no vtable
+  do Network.send(bytes)
+}</code></pre>
+<h2 data-number="6.2" id="garbage-collection-to-ownership"><span
+class="header-section-number">6.2</span> Garbage Collection to
+Ownership</h2>
+<p>Garbage collection is a runtime mechanism for the decision “when
+should this memory be freed?” With linear types:</p>
+<pre
+data-caption="Ownership eliminates garbage collection in JAPL"><code>fn pipeline() -&gt; Result&lt;Report, Error&gt; {
+  let data = Owned::new(load_data()); // Allocated
+  let processed = transform(data);     // data moved, original dropped
+  let report = summarize(processed);   // processed moved, original dropped
+  report // Returned to caller; caller owns it
+  // All memory freed deterministically at scope boundaries.
+  // No GC pauses. No reference counting overhead.
+}</code></pre>
+<h2 data-number="6.3" id="exception-handling-to-result-types"><span
+class="header-section-number">6.3</span> Exception Handling to Result
+Types</h2>
+<p>Exceptions make error propagation invisible: any function might
+throw, and the decision “will this function raise an exception?” is
+runtime. Result types transfer this:</p>
+<pre
+data-caption="Result types transfer error decisions to compile time in JAPL"><code>fn parse_config(path: String) -&gt; Result&lt;Config, ConfigError&gt; / {FileSystem} {
+  let content = do FileSystem.read_file(path)
+    .map_err(ConfigError::IoError)?;
+  let config = parse_toml(content)
+    .map_err(ConfigError::ParseError)?;
+  validate(config)
+    .map_err(ConfigError::ValidationError)
+  // Every error path is visible in the type.
+  // The caller MUST handle all three error variants.
+}</code></pre>
+<div class="theorem">
+<p><strong>Theorem 20</strong> (Duality Ordering). <em> The decision
+transfer map induces a partial order on type systems. For type systems
+<span class="math inline">\(T_1, T_2\)</span>: <span
+class="math display">\[T_1 \preceq T_2 \iff \forall P.\;
+\mathcal{C}_{T_1}(P) \subseteq \mathcal{C}_{T_2}(P)\]</span> This order
+has the simply-typed lambda calculus near the bottom and the Calculus of
+Inductive Constructions near the top.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> The relation <span
+class="math inline">\(\preceq\)</span> is clearly reflexive and
+transitive. Antisymmetry holds up to equivalence of type systems
+(systems that accept the same programs with the same static guarantees).
+The simply-typed lambda calculus provides witnesses only for basic type
+safety. Each extension (polymorphism, algebraic types, linear types,
+dependent types, etc.) strictly increases <span
+class="math inline">\(\mathcal{C}_T(P)\)</span>. The Calculus of
+Inductive Constructions, being a full proof system, can in principle
+construct witnesses for all <span
+class="math inline">\(\omega\)</span>-independent decisions. ◻</p>
+</div>
+<h1 data-number="7" id="sec:corollary3"><span
+class="header-section-number">7</span> Corollary 3: The Yoneda
+Correspondence</h1>
+<p>The third corollary connects the axiom to category theory via the
+Yoneda lemma, providing the deepest structural insight.</p>
+<div class="definition">
+<p><strong>Definition 21</strong> (The Yoneda Embedding). <em> For a
+locally small category <span class="math inline">\(\mathcal{C}\)</span>,
+the <em>Yoneda embedding</em> is the functor <span
+class="math inline">\(\mathsf{y} : \mathcal{C} \to
+[\mathcal{C}^{\mathrm{op}}, \mathbf{Set}]\)</span> defined by: <span
+class="math display">\[\mathsf{y}(A) = \mathrm{Hom}_{\mathcal{C}}(-,
+A)\]</span> The Yoneda lemma states that for any presheaf <span
+class="math inline">\(F : \mathcal{C}^{\mathrm{op}}\to
+\mathbf{Set}\)</span>: <span
+class="math display">\[\mathrm{Nat}(\mathrm{Hom}_{\mathcal{C}}(-, A), F)
+\cong F(A)\]</span> That is, an object <span
+class="math inline">\(A\)</span> is fully determined (up to isomorphism)
+by its relationships with all other objects—its “web of
+morphisms.”</em></p>
+</div>
+<div class="corollary">
+<p><strong>Corollary 22</strong> (The Yoneda Correspondence). <em>
+Runtime type inspection (reflection, <code>instanceof</code>,
+<code>typeof</code>, dynamic casts) is isomorphic to failure of the
+Yoneda embedding in the type-theoretic category. Formally, if a value
+<span class="math inline">\(v\)</span> of type <span
+class="math inline">\(A\)</span> is fully characterized by the morphisms
+<span class="math inline">\(\mathrm{Hom}(-, A)\)</span> (i.e., by how it
+interacts with all other types via the type system), then no runtime
+inspection of <span class="math inline">\(v\)</span> is
+necessary.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> Let <span
+class="math inline">\(\mathcal{C}_T\)</span> be the category whose
+objects are types in type system <span class="math inline">\(T\)</span>
+and whose morphisms are well-typed functions. The Yoneda embedding <span
+class="math inline">\(\mathsf{y} : \mathcal{C}_T \to
+[\mathcal{C}_T^{\mathrm{op}}, \mathbf{Set}]\)</span> sends each type
+<span class="math inline">\(A\)</span> to its representable presheaf
+<span class="math inline">\(\mathrm{Hom}(-, A)\)</span>.</p>
+<p>Suppose the Yoneda embedding is faithful for the relevant types—i.e.,
+the type system’s morphisms (well-typed programs) fully characterize
+each type’s behavior. Then any property of a value <span
+class="math inline">\(v : A\)</span> that a runtime inspector could
+determine is already determined by the morphisms involving <span
+class="math inline">\(A\)</span>, which are precisely the well-typed
+programs interacting with <span class="math inline">\(v\)</span>. These
+morphisms are checked at compile time. Hence no runtime inspection is
+needed.</p>
+<p>Conversely, if runtime inspection <em>is</em> needed for some
+property of <span class="math inline">\(v : A\)</span>, then that
+property is not captured by <span class="math inline">\(\mathrm{Hom}(-,
+A)\)</span>—the Yoneda embedding fails to distinguish <span
+class="math inline">\(A\)</span> from some other type <span
+class="math inline">\(A&#39;\)</span> that differs in that property.
+This is precisely a failure of the Yoneda embedding’s faithfulness,
+meaning the type system has insufficient morphisms to characterize the
+distinction. ◻</p>
+</div>
+<div class="example">
+<p><strong>Example 23</strong> (Yoneda Failure in Java). <em> In Java,
+the <code>instanceof</code> operator is the canonical example of Yoneda
+failure. Consider:</em></p>
+<div class="sourceCode" id="cb9" data-language="Java"
+data-caption="Yoneda failure: runtime type inspection"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">process</span><span class="op">(</span><span class="bu">Object</span> obj<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>obj <span class="kw">instanceof</span> <span class="bu">String</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>obj <span class="kw">instanceof</span> <span class="bu">Integer</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><em>The type <code>Object</code> does not have enough morphisms
+(methods with specific type signatures) to distinguish
+<code>String</code> from <code>Integer</code>. The Yoneda embedding of
+<code>Object</code> conflates all subtypes, forcing runtime
+inspection.</em></p>
+<p><em>In JAPL, this would be:</em></p>
+<pre
+data-caption="Yoneda success: compile-time type dispatch in JAPL"><code>enum Value {
+  Text(String),
+  Number(Int),
+}
+
+fn process(v: Value) -&gt; Output {
+  match v {
+    Value::Text(s)   =&gt; process_text(s),
+    Value::Number(n) =&gt; process_number(n),
+  }
+  // Exhaustive match: the type Value has enough structure
+  // (its Yoneda image is faithful) to resolve dispatch at compile time.
+}</code></pre>
+</div>
+<div class="theorem">
+<p><strong>Theorem 24</strong> (Yoneda Completeness Criterion). <em> A
+type system <span class="math inline">\(T\)</span> is
+<em>Yoneda-complete</em> for a program <span
+class="math inline">\(P\)</span> if the Yoneda embedding <span
+class="math inline">\(\mathsf{y} : \mathcal{C}_T \to
+[\mathcal{C}_T^{\mathrm{op}}, \mathbf{Set}]\)</span> is full and
+faithful for all types occurring in <span
+class="math inline">\(P\)</span>. In a Yoneda-complete type system, no
+runtime type inspection is needed for <span
+class="math inline">\(\omega\)</span>-independent decisions.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> If <span class="math inline">\(\mathsf{y}\)</span> is
+full and faithful, then every natural transformation between
+representable presheaves corresponds to a unique morphism in <span
+class="math inline">\(\mathcal{C}_T\)</span>. This means every “testable
+relationship” between types is captured by a compile-time morphism (a
+well-typed function). Any decision that depends only on type
+relationships (and not on <span
+class="math inline">\(\omega\text{-data}\)</span>) can therefore be
+resolved by the type system.</p>
+<p>Fullness ensures that every conceivable type relationship <em>is</em>
+expressible as a typed program. Faithfulness ensures that distinct type
+relationships remain distinguishable. Together, they guarantee that the
+type system’s view of the world is as rich as the actual world of type
+relationships, leaving no room for runtime discovery. ◻</p>
+</div>
+<h1 data-number="8" id="sec:hierarchy"><span
+class="header-section-number">8</span> The Decision Transfer
+Hierarchy</h1>
+<p>The compile-time/runtime boundary is not binary. There is a hierarchy
+of stages at which decisions can be resolved:</p>
+<div class="center">
+
+</div>
+<p>Each leftward arrow represents a <em>decision transfer</em>—moving a
+decision to an earlier stage. The axiom asserts that we should transfer
+decisions as far left as possible.</p>
+<h2 data-number="8.1" id="proof-time"><span
+class="header-section-number">8.1</span> Proof Time</h2>
+<p>Decisions resolved by formal proof, before any type checking begins.
+Examples include mathematical lemmas verified by a proof assistant that
+are then used as axioms in the type system.</p>
+<p>In dependently-typed languages like Agda:</p>
+<div class="sourceCode" id="cb11" data-language="Haskell"
+data-caption="Proof-time decision: commutativity of addition"><pre
+class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- This proof is verified once and used as an axiom</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>plus<span class="op">-</span>comm <span class="op">:</span> (m n <span class="op">:</span> <span class="dt">Nat</span>) <span class="ot">-&gt;</span> m <span class="op">+</span> n <span class="ot">=</span> n <span class="op">+</span> m</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>plus<span class="op">-</span>comm zero n <span class="ot">=</span> sym (plus<span class="op">-</span>zero n)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>plus<span class="op">-</span>comm (suc m) n <span class="ot">=</span> trans (cong suc (plus<span class="op">-</span>comm m n))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                            (sym (plus<span class="op">-</span>suc n m))</span></code></pre></div>
+<h2 data-number="8.2" id="type-check-time"><span
+class="header-section-number">8.2</span> Type-Check Time</h2>
+<p>Decisions resolved by the type checker during type inference and
+checking. This is the most common target for decision transfer.
+Examples: type safety, null safety, pattern exhaustiveness, effect
+tracking.</p>
+<h2 data-number="8.3" id="compile-time"><span
+class="header-section-number">8.3</span> Compile Time</h2>
+<p>Decisions resolved during compilation after type checking. Examples:
+monomorphization, constant folding, dead code elimination, inlining.</p>
+<h2 data-number="8.4" id="link-time"><span
+class="header-section-number">8.4</span> Link Time</h2>
+<p>Decisions resolved during linking of separately compiled modules.
+Examples: cross-module inlining, whole-program devirtualization,
+link-time optimization (LTO).</p>
+<h2 data-number="8.5" id="connection-to-futamura-projections"><span
+class="header-section-number">8.5</span> Connection to Futamura
+Projections</h2>
+<p>The decision transfer hierarchy is intimately connected to the
+Futamura projections from partial evaluation theory.</p>
+<div class="definition">
+<p><strong>Definition 25</strong> (Futamura Projections). <em> Let <span
+class="math inline">\(\mathsf{mix}\)</span> be a partial evaluator. The
+three Futamura projections are:</em></p>
+<ol>
+<li><p><em><span class="math inline">\(\mathsf{mix}(\mathsf{interp},
+\mathsf{source}) = \mathsf{target}\)</span> (specializing an interpreter
+yields a compiled program)</em></p></li>
+<li><p><em><span class="math inline">\(\mathsf{mix}(\mathsf{mix},
+\mathsf{interp}) = \mathsf{compiler}\)</span> (specializing the partial
+evaluator on an interpreter yields a compiler)</em></p></li>
+<li><p><em><span class="math inline">\(\mathsf{mix}(\mathsf{mix},
+\mathsf{mix}) = \mathsf{cogen}\)</span> (specializing the partial
+evaluator on itself yields a compiler generator)</em></p></li>
+</ol>
+</div>
+<p>Each Futamura projection is a decision transfer: it moves decisions
+from a later stage (interpretation, compilation, meta-compilation) to an
+earlier one. The Minimal Runtime Axiom can be seen as the limiting
+principle underlying all three projections: transfer every decision to
+the earliest possible stage.</p>
+<h1 data-number="9" id="sec:language-design"><span
+class="header-section-number">9</span> Applications to Language
+Design</h1>
+<p>We now apply the Minimal Runtime Axiom to the design of JAPL (Just
+Another Programming Language), a language under development by the
+YonedaAI Research Collective that embodies the axiom’s principles. JAPL
+is designed so that each language feature corresponds to a specific
+decision transfer.</p>
+<h2 data-number="9.1" id="effect-system-transferring-io-decisions"><span
+class="header-section-number">9.1</span> Effect System: Transferring I/O
+Decisions</h2>
+<p>JAPL’s algebraic effect system transfers the decision “what side
+effects does this function perform?” from runtime to type-check
+time.</p>
+<pre data-caption="JAPL effect system as decision transfer"><code>effect Database {
+  fn query&lt;T: FromRow&gt;(sql: String) -&gt; Result&lt;Vec&lt;T&gt;, DbError&gt;
+  fn execute(sql: String) -&gt; Result&lt;u64, DbError&gt;
+}
+
+effect Http {
+  fn get(url: String) -&gt; Result&lt;Response, HttpError&gt;
+  fn post(url: String, body: Body) -&gt; Result&lt;Response, HttpError&gt;
+}
+
+// Type signature is the static witness for effect decisions:
+fn fetch_user_data(id: UserId) -&gt; Result&lt;UserData, AppError&gt; / {Database, Http} {
+  let profile = do Database.query::&lt;Profile&gt;(
+    format!(&quot;SELECT * FROM profiles WHERE id = {}&quot;, id)
+  )?;
+  let avatar = do Http.get(profile.avatar_url)?;
+  Ok(UserData { profile, avatar })
+}
+
+// The handler is the compile-time linkage:
+fn main() -&gt; Result&lt;(), AppError&gt; / {IO} {
+  handle {
+    let data = fetch_user_data(UserId(42))?;
+    println!(&quot;{:?}&quot;, data);
+    Ok(())
+  } with {
+    Database =&gt; PostgresHandler::new(&quot;postgres://localhost/mydb&quot;),
+    Http =&gt; ReqwestHandler::new(),
+  }
+}</code></pre>
+<h2 data-number="9.2"
+id="ownership-system-transferring-memory-decisions"><span
+class="header-section-number">9.2</span> Ownership System: Transferring
+Memory Decisions</h2>
+<p>JAPL’s ownership system, inspired by Rust but extended with linear
+types and effect integration, transfers all memory management decisions
+to compile time.</p>
+<pre data-caption="JAPL ownership as decision transfer"><code>fn process_stream(stream: Owned&lt;TcpStream&gt;) -&gt; Result&lt;(), NetError&gt; / {IO} {
+  let reader = BufReader::new(stream);  // stream moved into reader
+  // stream is no longer accessible here (compile-time enforcement)
+
+  for line in reader.lines() {
+    let line = line?;
+    let parsed: Record = parse(line.as_ref())?;
+    process_record(parsed);
+  }
+  // reader dropped here: TcpStream closed deterministically
+  Ok(())
+}</code></pre>
+<h2 data-number="9.3"
+id="pattern-matching-exhaustiveness-transferring-dispatch-decisions"><span
+class="header-section-number">9.3</span> Pattern Matching
+Exhaustiveness: Transferring Dispatch Decisions</h2>
+<pre
+data-caption="Exhaustive pattern matching as decision transfer in JAPL"><code>enum Expr {
+  Lit(f64),
+  Add(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+  Mul(Box&lt;Expr&gt;, Box&lt;Expr&gt;),
+  Neg(Box&lt;Expr&gt;),
+}
+
+fn eval(expr: Ref&lt;Expr&gt;) -&gt; f64 {
+  match expr {
+    Expr::Lit(n)       =&gt; *n,
+    Expr::Add(l, r)    =&gt; eval(l) + eval(r),
+    Expr::Mul(l, r)    =&gt; eval(l) * eval(r),
+    Expr::Neg(e)       =&gt; -eval(e),
+    // Adding a new variant to Expr will cause a compile-time error here
+    // until a new match arm is added. No runtime &quot;default&quot; case needed.
+  }
+}</code></pre>
+<h2 data-number="9.4"
+id="type-derived-serialization-transferring-wire-format-decisions"><span
+class="header-section-number">9.4</span> Type-Derived Serialization:
+Transferring Wire Format Decisions</h2>
+<pre
+data-caption="Type-derived serialization as decision transfer in JAPL"><code>#[derive(Serialize, Deserialize, Schema)]
+struct ApiResponse {
+  status: u16,
+  data: Vec&lt;UserRecord&gt;,
+  pagination: PageInfo,
+}
+
+// The Schema derivation generates a compile-time wire format.
+// No runtime reflection needed for serialization.
+// Schema compatibility between services is checked at compile time
+// when both services share the type definition.</code></pre>
+<h2 data-number="9.5"
+id="supervision-trees-transferring-failure-policy-decisions"><span
+class="header-section-number">9.5</span> Supervision Trees: Transferring
+Failure Policy Decisions</h2>
+<pre
+data-caption="Declarative supervision as decision transfer in JAPL"><code>#[supervise(
+  strategy = OneForOne,
+  max_restarts = 3,
+  within = Duration::seconds(60),
+)]
+struct AppSupervisor {
+  #[child(restart = Always)]
+  web_server: WebServer,
+
+  #[child(restart = OnFailure)]
+  background_worker: Worker,
+
+  #[child(restart = Never)]
+  one_shot_migration: Migration,
+}
+
+// Failure policy is declared at compile time.
+// The supervisor tree structure is type-checked.
+// Invalid configurations (e.g., circular supervision) are compile-time errors.</code></pre>
+<h1 data-number="10" id="sec:agent-arch"><span
+class="header-section-number">10</span> Applications to Agent
+Architecture</h1>
+<p>The Minimal Runtime Axiom extends naturally to AI agent systems,
+where the compile-time/runtime distinction maps to the
+design-time/execution-time distinction. We illustrate through the lens
+of the ContextFS agent memory architecture and the AgentHero framework
+developed at YonedaAI.</p>
+<h2 data-number="10.1" id="agent-capability-as-a-type"><span
+class="header-section-number">10.1</span> Agent Capability as a
+Type</h2>
+<p>In agent systems, a critical decision is “does this agent have the
+capability to perform this action?” In most frameworks, this is checked
+at runtime. The axiom suggests typing agent capabilities:</p>
+<pre data-caption="Agent capabilities as types in JAPL"><code>trait Agent&lt;Caps: CapabilitySet&gt; {
+  fn execute&lt;A: Action&gt;(
+    self: Ref&lt;Self&gt;,
+    action: A,
+  ) -&gt; Result&lt;A::Output, AgentError&gt;
+  where
+    Caps: HasCapability&lt;A::Required&gt;;
+    // Compile-time proof that agent has required capabilities
+}
+
+struct ResearchAgent;
+
+impl Agent&lt;(WebSearch, FileRead, CodeExec)&gt; for ResearchAgent {
+  fn execute&lt;A: Action&gt;(
+    self: Ref&lt;Self&gt;,
+    action: A,
+  ) -&gt; Result&lt;A::Output, AgentError&gt;
+  where
+    (WebSearch, FileRead, CodeExec): HasCapability&lt;A::Required&gt;
+  {
+    // If this compiles, the capability check has passed.
+    action.run(self)
+  }
+}</code></pre>
+<h2 data-number="10.2" id="tool-authorization-as-a-static-witness"><span
+class="header-section-number">10.2</span> Tool Authorization as a Static
+Witness</h2>
+<p>Tool authorization—deciding whether an agent may invoke a particular
+tool—is typically a runtime check against an ACL. With static
+witnesses:</p>
+<pre data-caption="Tool authorization as a static witness"><code>type ToolAuth&lt;T: Tool, A: Agent&gt; = proof {
+  A::Capabilities: Contains&lt;T::RequiredCapability&gt;
+};
+
+fn invoke_tool&lt;T: Tool, A: Agent&gt;(
+  agent: Ref&lt;A&gt;,
+  tool: T,
+  args: T::Args,
+  _auth: ToolAuth&lt;T, A&gt;,  // Proof term: must be constructed at compile time
+) -&gt; Result&lt;T::Output, ToolError&gt; / {T::Effects} {
+  tool.execute(args)
+}</code></pre>
+<h2 data-number="10.3"
+id="memory-schema-as-compile-time-structure"><span
+class="header-section-number">10.3</span> Memory Schema as Compile-Time
+Structure</h2>
+<p>In the ContextFS architecture, agent memory is organized by typed
+schemas. The decision “is this memory access valid?” can be transferred
+to compile time:</p>
+<pre data-caption="Typed agent memory in JAPL"><code>#[memory_schema]
+struct AgentMemory {
+  context: TypedStore&lt;ConversationContext&gt;,
+  knowledge: TypedStore&lt;KnowledgeGraph&gt;,
+  preferences: TypedStore&lt;UserPreferences&gt;,
+}
+
+fn recall_context(
+  memory: Ref&lt;AgentMemory&gt;,
+  query: Query,
+) -&gt; Result&lt;Vec&lt;ConversationContext&gt;, MemoryError&gt; / {IO} {
+  // Type-safe memory access: cannot accidentally query
+  // knowledge store with a context query.
+  memory.context.search(query)
+}</code></pre>
+<h1 data-number="11" id="sec:related"><span
+class="header-section-number">11</span> Comparison with Related
+Frameworks</h1>
+<h2 data-number="11.1" id="partial-evaluation-theory"><span
+class="header-section-number">11.1</span> Partial Evaluation Theory</h2>
+<p>Partial evaluation <span class="citation"
+data-cites="jones1993partial"></span> specializes a program with respect
+to known (static) inputs, producing a residual program that depends only
+on unknown (dynamic) inputs. The connection to the Minimal Runtime Axiom
+is direct:</p>
+<ul>
+<li><p>Static inputs correspond to <span
+class="math inline">\(\omega\)</span>-independent data</p></li>
+<li><p>Dynamic inputs correspond to <span
+class="math inline">\(\omega\text{-data}\)</span></p></li>
+<li><p>The residual program is <span
+class="math inline">\(\mathcal{R}(P)\)</span></p></li>
+<li><p>Binding-time analysis is the identification of <span
+class="math inline">\(\mathcal{C}(P)\)</span> vs. <span
+class="math inline">\(\mathcal{R}(P)\)</span></p></li>
+</ul>
+<p>The key difference is that partial evaluation is a <em>technique</em>
+while the Minimal Runtime Axiom is a <em>principle</em>. Partial
+evaluation transfers decisions from runtime to compile time via program
+transformation; the axiom says that <em>all available</em> techniques
+should be brought to bear, and characterizes the irreducible
+residual.</p>
+<h2 data-number="11.2" id="multi-stage-programming"><span
+class="header-section-number">11.2</span> Multi-Stage Programming</h2>
+<p>MetaOCaml <span class="citation"
+data-cites="kiselyov2014metaocaml"></span> and similar systems provide
+explicit staging annotations that control when code is generated and
+executed. The staging certificate <span
+class="math inline">\(\sigma\)</span> in our framework corresponds to
+MetaOCaml’s staging levels:</p>
+<ul>
+<li><p>Level 0 code (current stage) <span
+class="math inline">\(\leftrightarrow\)</span> <span
+class="math inline">\(\sigma\)</span> is trivially satisfied</p></li>
+<li><p>Level 1 code (next stage) <span
+class="math inline">\(\leftrightarrow\)</span> <span
+class="math inline">\(\sigma\)</span> requires future
+information</p></li>
+<li><p>Cross-stage persistence <span
+class="math inline">\(\leftrightarrow\)</span> lifting a witness from an
+earlier stage</p></li>
+</ul>
+<p>MetaOCaml’s contribution is making staging <em>explicit and
+type-safe</em>. The axiom adds the normative principle that staging
+should be maximized.</p>
+<h2 data-number="11.3" id="dependent-type-theory"><span
+class="header-section-number">11.3</span> Dependent Type Theory</h2>
+<p>Idris <span class="citation" data-cites="brady2013idris"></span>,
+Agda <span class="citation" data-cites="norell2009agda"></span>, and
+Lean <span class="citation" data-cites="demoura2015lean"></span>
+represent the state of the art in static witness construction. In these
+systems, the type <span class="math inline">\(\tau\)</span> can express
+arbitrary propositions (by the Curry-Howard correspondence), the proof
+term <span class="math inline">\(\pi\)</span> is a program witnessing
+the proposition, and <span class="math inline">\(\sigma\)</span> is
+guaranteed because type checking occurs at compile time.</p>
+<p>The Minimal Runtime Axiom adds the observation that even dependent
+types have a limit: <span
+class="math inline">\(\omega\text{-data}\)</span> remains irreducibly
+runtime. Dependent types can <em>minimize</em> <span
+class="math inline">\(\mathcal{R}(P)\)</span> but cannot eliminate
+it.</p>
+<h2 data-number="11.4" id="gradual-typing"><span
+class="header-section-number">11.4</span> Gradual Typing</h2>
+<p>Gradual typing <span class="citation"
+data-cites="siek2006gradual"></span> introduces a “dynamic” type that
+defers type checking to runtime. In the framework of the axiom, gradual
+typing is a <em>controlled Yoneda failure</em>: the programmer
+deliberately weakens the Yoneda embedding for specific types, accepting
+runtime overhead in exchange for flexibility.</p>
+<p>The axiom predicts that gradually typed code will be slower (more
+runtime decisions) and less safe (fewer static witnesses) than fully
+statically typed code, which is empirically confirmed <span
+class="citation" data-cites="takikawa2016gradual"></span>.</p>
+<h2 data-number="11.5" id="rusts-zero-cost-abstractions"><span
+class="header-section-number">11.5</span> Rust’s Zero-Cost
+Abstractions</h2>
+<p>Rust <span class="citation" data-cites="matsakis2014rust"></span>
+embodies a practical application of the axiom. Its “zero-cost
+abstractions” principle states that abstractions should compile to code
+as efficient as hand-written alternatives. In our framework:</p>
+<ul>
+<li><p>Ownership/borrowing: static witnesses for memory
+decisions</p></li>
+<li><p>Trait monomorphization: static witnesses for dispatch
+decisions</p></li>
+<li><p><code>unsafe</code>: explicit boundary where static witnesses are
+unavailable</p></li>
+</ul>
+<p>Rust’s <code>unsafe</code> keyword is a precise annotation of where
+the axiom’s guarantees are deliberately suspended—a region where the
+programmer asserts that the runtime decisions are justified by concerns
+the type system cannot capture.</p>
+<h1 data-number="12" id="sec:impossibility"><span
+class="header-section-number">12</span> The Impossibility Boundary</h1>
+<p>The Minimal Runtime Axiom asserts that runtime should be minimized,
+but what is the minimum? This section characterizes the hard boundary
+beyond which no static analysis can penetrate.</p>
+<div class="theorem">
+<p><strong>Theorem 26</strong> (The <span
+class="math inline">\(\omega\)</span>-Boundary). <em> No static
+analysis, regardless of expressiveness, can eliminate decisions that
+depend on <span class="math inline">\(\omega\text{-data}\)</span>.
+Formally, for any type system <span class="math inline">\(T\)</span>
+(including the Calculus of Inductive Constructions with arbitrary axiom
+extensions): <span class="math display">\[\mathcal{R}(P)_{\min} = \{ d
+\in \mathcal{D}(P)\mid d \text{ depends on }
+\omega\text{-data}\}\]</span> is a lower bound on the runtime set, and
+this bound is tight.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> The proof proceeds by contradiction. Suppose a
+decision <span class="math inline">\(d\)</span> depends on <span
+class="math inline">\(\omega\text{-data}\)</span> but has a static
+witness <span class="math inline">\(w_d= (\tau, \pi, \sigma)\)</span>.
+The staging certificate <span class="math inline">\(\sigma\)</span>
+requires that <span class="math inline">\(\pi\)</span> be constructible
+before execution. But <span class="math inline">\(\pi\)</span> must
+establish a proposition about the outcome of <span
+class="math inline">\(d\)</span>, which depends on <span
+class="math inline">\(\omega\)</span>. Since <span
+class="math inline">\(\omega\)</span> is not determined before execution
+(by definition), <span class="math inline">\(\pi\)</span> would need to
+determine the indeterminate, a contradiction.</p>
+<p>Tightness: for any <span class="math inline">\(d\)</span> not
+depending on <span class="math inline">\(\omega\text{-data}\)</span>, we
+can construct a witness in a sufficiently expressive system (the proof
+follows from the completeness of the Calculus of Inductive Constructions
+for decidable propositions about finite data). ◻</p>
+</div>
+<h2 data-number="12.1" id="connection-to-the-halting-problem"><span
+class="header-section-number">12.1</span> Connection to the Halting
+Problem</h2>
+<p>The halting problem provides a concrete instance of the <span
+class="math inline">\(\omega\)</span>-boundary within computation
+itself.</p>
+<div class="theorem">
+<p><strong>Theorem 27</strong> (Halting as <span
+class="math inline">\(\omega\)</span>-Boundary). <em> The decision “does
+program <span class="math inline">\(Q\)</span> halt on input <span
+class="math inline">\(x\)</span>?” is at the <span
+class="math inline">\(\omega\)</span>-boundary: it is <span
+class="math inline">\(\omega\)</span>-dependent when <span
+class="math inline">\(Q\)</span> or <span
+class="math inline">\(x\)</span> is not fully known at compile time, and
+it is undecidable even when both are known (by Rice’s theorem, for
+non-trivial semantic properties).</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> If <span class="math inline">\(Q\)</span> or <span
+class="math inline">\(x\)</span> is provided as runtime input (i.e., is
+part of <span class="math inline">\(\omega\text{-data}\)</span>), the
+halting decision trivially depends on <span
+class="math inline">\(\omega\text{-data}\)</span>. If both <span
+class="math inline">\(Q\)</span> and <span
+class="math inline">\(x\)</span> are known at compile time, the question
+becomes: can the type system decide halting? By Rice’s theorem <span
+class="citation" data-cites="rice1953classes"></span>, no non-trivial
+semantic property of programs is decidable. The halting property is a
+semantic property and is non-trivial. Therefore, even with full
+information, the halting decision lies beyond the capability of any
+computable static analysis.</p>
+<p>Note, however, that <em>specific instances</em> of the halting
+problem can be decided statically. A type system with termination
+checking (as in Agda) can prove termination for many programs. The
+impossibility is for the <em>general</em> case, not for <em>all</em>
+cases. ◻</p>
+</div>
+<h2 data-number="12.2" id="connection-to-srip"><span
+class="header-section-number">12.2</span> Connection to SRIP</h2>
+<p>The Self-Reference Incompleteness Principle (SRIP) from YonedaAI’s
+foundational research <span class="citation"
+data-cites="long2025srip"></span> provides another perspective on the
+impossibility boundary. SRIP states that no formal system can fully
+capture its own semantics—there are always truths about the system that
+the system cannot prove.</p>
+<p>In the context of the Minimal Runtime Axiom, SRIP implies that a
+programming language’s type system cannot statically verify all
+properties of programs written in that language. There will always be
+“Gödel sentences”—program properties that are true but not provable
+within the type system—that require runtime verification.</p>
+<div class="proposition">
+<p><strong>Proposition 28</strong> (SRIP Bound on <span
+class="math inline">\(\mathcal{C}(P)\)</span>). <em> For any programming
+language <span class="math inline">\(L\)</span> with type system <span
+class="math inline">\(T\)</span>, there exist programs <span
+class="math inline">\(P\)</span> in <span
+class="math inline">\(L\)</span> and decisions <span
+class="math inline">\(d \in \mathcal{D}(P)\)</span> that are <span
+class="math inline">\(\omega\)</span>-independent but for which no
+static witness <span class="math inline">\(w_d\)</span> can be
+constructed in <span class="math inline">\(T\)</span>. The set of such
+decisions is non-empty for any <span class="math inline">\(T\)</span>
+that is at least as expressive as primitive recursive
+arithmetic.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> By Gödel’s first incompleteness theorem, for any
+consistent formal system <span class="math inline">\(F\)</span> that can
+express basic arithmetic, there exists a sentence <span
+class="math inline">\(G_F\)</span> that is true in the standard model
+but not provable in <span class="math inline">\(F\)</span>. Encoding
+<span class="math inline">\(G_F\)</span> as a program property gives a
+decision that is <span class="math inline">\(\omega\)</span>-independent
+(it depends only on the program structure) but lacks a static witness in
+<span class="math inline">\(T\)</span> (since <span
+class="math inline">\(T\)</span>, viewed as a proof system, cannot prove
+<span class="math inline">\(G_F\)</span>). ◻</p>
+</div>
+<div class="remark">
+<p><strong>Remark 29</strong>. <em>The SRIP bound is
+<em>theoretical</em>. In practice, the Gödel sentences of type systems
+are exotic and rarely encountered in real programs. The practical
+impossibility boundary is almost entirely the <span
+class="math inline">\(\omega\)</span>-boundary, not the SRIP boundary.
+Nevertheless, the SRIP bound is important for understanding the
+<em>fundamental</em> limits of static reasoning.</em></p>
+</div>
+<h1 data-number="13" id="sec:category-theory"><span
+class="header-section-number">13</span> Formalization in Category
+Theory</h1>
+<p>We now develop the full categorical formalization of the Minimal
+Runtime Axiom.</p>
+<h2 data-number="13.1" id="the-decision-category"><span
+class="header-section-number">13.1</span> The Decision Category</h2>
+<div class="definition">
+<p><strong>Definition 30</strong> (Decision Category). <em> For a
+program <span class="math inline">\(P\)</span>, the <em>decision
+category</em> <span class="math inline">\(\mathcal{D}\)</span>
+has:</em></p>
+<ul>
+<li><p><em><strong>Objects</strong>: decisions <span
+class="math inline">\(d \in \mathcal{D}(P)\)</span></em></p></li>
+<li><p><em><strong>Morphisms</strong>: <span class="math inline">\(f :
+d_1 \to d_2\)</span> exists iff resolving <span
+class="math inline">\(d_1\)</span> determines (or constrains) <span
+class="math inline">\(d_2\)</span>. Since determination is reflexive,
+transitive, and antisymmetric (up to equivalence of decisions), <span
+class="math inline">\(\mathcal{D}\)</span> forms a <em>preorder</em>,
+and in fact a <em>partial order</em> when we identify equivalent
+decisions. This poset structure is essential for the Galois connection
+underlying the adjunction in .</em></p></li>
+<li><p><em><strong>Composition</strong>: transitive determination
+(inherited from the preorder)</em></p></li>
+<li><p><em><strong>Identity</strong>: each decision trivially determines
+itself (reflexivity)</em></p></li>
+</ul>
+</div>
+<h2 data-number="13.2" id="the-static-and-runtime-subcategories"><span
+class="header-section-number">13.2</span> The Static and Runtime
+Subcategories</h2>
+<div class="definition">
+<p><strong>Definition 31</strong> (Static and Runtime Subcategories).
+<em> Given a type system <span
+class="math inline">\(T\)</span>:</em></p>
+<ul>
+<li><p><em>The <em>static subcategory</em> <span
+class="math inline">\(\mathcal{S}_T \hookrightarrow \mathcal{D}\)</span>
+is the full subcategory on decisions in <span
+class="math inline">\(\mathcal{C}(P)\)</span>.</em></p></li>
+<li><p><em>The <em>runtime subcategory</em> <span
+class="math inline">\(\mathcal{R}_T \hookrightarrow \mathcal{D}\)</span>
+is the full subcategory on decisions in <span
+class="math inline">\(\mathcal{R}(P)\)</span>.</em></p></li>
+</ul>
+<p><em>The axiom states: <span
+class="math inline">\(\mathcal{R}_T\)</span> should be minimal (contain
+only <span class="math inline">\(\omega\)</span>-dependent
+decisions).</em></p>
+</div>
+<h2 data-number="13.3" id="the-axiom-as-an-adjunction"><span
+class="header-section-number">13.3</span> The Axiom as an
+Adjunction</h2>
+<div class="theorem">
+<p><strong>Theorem 32</strong> (The Static-Runtime Adjunction). <em>
+There exists an adjunction <span class="math inline">\(F \dashv
+G\)</span>: <span class="math display">\[F : \mathcal{R}_T
+\rightleftarrows \mathcal{S}_T : G\]</span> where <span
+class="math inline">\(F\)</span> (the <em>static transfer</em> functor)
+sends a runtime decision to its compile-time approximation, and <span
+class="math inline">\(G\)</span> (the <em>runtime embedding</em>
+functor) sends a static decision to its runtime execution. The unit
+<span class="math inline">\(\eta : \mathrm{id}_{\mathcal{R}} \Rightarrow
+G \circ F\)</span> represents the loss of information when approximating
+a runtime decision statically, and the counit <span
+class="math inline">\(\varepsilon : F \circ G \Rightarrow
+\mathrm{id}_{\mathcal{S}}\)</span> represents the elimination of
+redundant runtime checks after static analysis.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> We construct the adjunction explicitly.</p>
+<p><strong>The functor <span class="math inline">\(F\)</span></strong>:
+For each decision <span class="math inline">\(d \in
+\mathcal{R}_T\)</span>, <span class="math inline">\(F(d)\)</span> is the
+“best static approximation” of <span
+class="math inline">\(d\)</span>—the most informative decision in <span
+class="math inline">\(\mathcal{S}_T\)</span> that constrains <span
+class="math inline">\(d\)</span>. Formally, <span
+class="math inline">\(F(d) = \bigwedge \{ d&#39; \in \mathcal{S}_T \mid
+d&#39; \leq d \}\)</span> in the determination order. If no static
+decision constrains <span class="math inline">\(d\)</span>, then <span
+class="math inline">\(F(d) = \top\)</span> (the trivial decision).</p>
+<p><strong>The functor <span class="math inline">\(G\)</span></strong>:
+For each decision <span class="math inline">\(d \in
+\mathcal{S}_T\)</span>, <span class="math inline">\(G(d)\)</span> is the
+“runtime execution” of <span class="math inline">\(d\)</span>—the
+runtime operation that implements what was decided statically. For a
+fully static decision, <span class="math inline">\(G(d)\)</span> is a
+no-op at runtime (the decision has already been made).</p>
+<p><strong>Adjunction</strong>: We need to show that <span
+class="math inline">\(\mathrm{Hom}_{\mathcal{S}}(F(d_r), d_s) \cong
+\mathrm{Hom}_{\mathcal{R}}(d_r, G(d_s))\)</span> for all <span
+class="math inline">\(d_r \in \mathcal{R}_T\)</span> and <span
+class="math inline">\(d_s \in \mathcal{S}_T\)</span>. A morphism <span
+class="math inline">\(F(d_r) \to d_s\)</span> in <span
+class="math inline">\(\mathcal{S}_T\)</span> means the best static
+approximation of <span class="math inline">\(d_r\)</span> determines
+<span class="math inline">\(d_s\)</span>. A morphism <span
+class="math inline">\(d_r \to G(d_s)\)</span> in <span
+class="math inline">\(\mathcal{R}_T\)</span> means the runtime decision
+<span class="math inline">\(d_r\)</span> determines the runtime
+execution of <span class="math inline">\(d_s\)</span>. These correspond
+naturally: if the static approximation determines <span
+class="math inline">\(d_s\)</span>, then the full runtime decision
+(which refines the approximation) certainly determines <span
+class="math inline">\(d_s\)</span>’s execution, and conversely.</p>
+<p><strong>Unit</strong>: <span class="math inline">\(\eta_d : d \to
+G(F(d))\)</span> maps a runtime decision to the runtime execution of its
+static approximation. This is the “information loss” of approximation:
+<span class="math inline">\(G(F(d))\)</span> is a coarser version of
+<span class="math inline">\(d\)</span>.</p>
+<p><strong>Counit</strong>: <span class="math inline">\(\varepsilon_d :
+F(G(d)) \to d\)</span> maps the static approximation of a
+runtime-executed static decision back to the original static decision.
+Since <span class="math inline">\(d\)</span> was already static, <span
+class="math inline">\(F(G(d)) = d\)</span>, and <span
+class="math inline">\(\varepsilon\)</span> is the identity.</p>
+<p>The triangle identities follow from the fact that <span
+class="math inline">\(\varepsilon\)</span> is essentially the identity
+on static decisions and <span class="math inline">\(\eta\)</span> is
+injective on runtime decisions. ◻</p>
+</div>
+<h2 data-number="13.4"
+id="the-yoneda-embedding-as-maximal-static-characterization"><span
+class="header-section-number">13.4</span> The Yoneda Embedding as
+Maximal Static Characterization</h2>
+<div class="theorem">
+<p><strong>Theorem 33</strong> (Yoneda Maximality). <em> The Yoneda
+embedding <span class="math inline">\(\mathsf{y} : \mathcal{C}_T \to
+[\mathcal{C}_T^{\mathrm{op}}, \mathbf{Set}]\)</span> applied to the type
+category <span class="math inline">\(\mathcal{C}_T\)</span> provides the
+<em>maximal static characterization</em> of types: the image of <span
+class="math inline">\(\mathsf{y}\)</span> captures all and only the
+relationships expressible in the type system.</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> By the Yoneda lemma, <span
+class="math inline">\(\mathsf{y}\)</span> is full and faithful.
+Therefore:</p>
+<ol>
+<li><p><strong>Full</strong>: every natural transformation <span
+class="math inline">\(\mathrm{Nat}(\mathsf{y}(A),
+\mathsf{y}(B))\)</span> comes from a morphism <span
+class="math inline">\(A \to B\)</span> in <span
+class="math inline">\(\mathcal{C}_T\)</span>. This means every
+“observable relationship” between types <span
+class="math inline">\(A\)</span> and <span
+class="math inline">\(B\)</span> in the presheaf category corresponds to
+a concrete well-typed program.</p></li>
+<li><p><strong>Faithful</strong>: distinct morphisms <span
+class="math inline">\(f \neq g : A \to B\)</span> in <span
+class="math inline">\(\mathcal{C}_T\)</span> give distinct natural
+transformations. No information is lost.</p></li>
+</ol>
+<p>Maximality follows: any characterization of types that goes beyond
+<span class="math inline">\(\mathsf{y}\)</span>’s image would require
+information not expressible as morphisms in <span
+class="math inline">\(\mathcal{C}_T\)</span>—i.e., information that the
+type system cannot express. Such information is precisely the “epistemic
+deficit” of the type system, and accessing it requires runtime
+inspection (). ◻</p>
+</div>
+<h2 data-number="13.5" id="the-decision-functor"><span
+class="header-section-number">13.5</span> The Decision Functor</h2>
+<div class="definition">
+<p><strong>Definition 34</strong> (Decision Functor). <em> The
+<em>decision functor</em> <span class="math inline">\(\mathcal{D}(-) :
+\mathbf{Lang} \to \mathbf{Cat}\)</span> maps each programming language
+(with its type system) to its decision category:</em></p>
+<ul>
+<li><p><em>On objects: <span
+class="math inline">\(\mathcal{D}(L)\)</span> is the decision category
+of all programs in <span class="math inline">\(L\)</span>.</em></p></li>
+<li><p><em>On morphisms: a language embedding <span
+class="math inline">\(L_1 \hookrightarrow L_2\)</span> induces a functor
+<span class="math inline">\(\mathcal{D}(L_1) \to
+\mathcal{D}(L_2)\)</span> that preserves static decisions and may
+transfer runtime decisions to static ones.</em></p></li>
+</ul>
+</div>
+<div class="theorem">
+<p><strong>Theorem 35</strong> (Contravariant Runtime Functor). <em> The
+runtime functor <span class="math inline">\(\mathcal{R}(-) :
+\mathbf{Lang}^{\mathrm{op}} \to \mathbf{Cat}\)</span> is
+<em>contravariant</em>: more expressive languages have smaller runtime
+categories. Formally, if <span class="math inline">\(L_1 \hookrightarrow
+L_2\)</span> (i.e., <span class="math inline">\(L_2\)</span> is at least
+as expressive as <span class="math inline">\(L_1\)</span>), then there
+is a functor <span class="math inline">\(\mathcal{R}(L_2) \to
+\mathcal{R}(L_1)\)</span> that is generally non-surjective (some runtime
+decisions in <span class="math inline">\(L_1\)</span> become static in
+<span class="math inline">\(L_2\)</span>).</em></p>
+</div>
+<div class="proof">
+<p><em>Proof.</em> By , <span class="math inline">\(\mathcal{C}_{L_1}(P)
+\subseteq \mathcal{C}_{L_2}(P)\)</span> implies <span
+class="math inline">\(\mathcal{R}_{L_2}(P) \subseteq
+\mathcal{R}_{L_1}(P)\)</span>. The inclusion <span
+class="math inline">\(\mathcal{R}_{L_2}(P) \hookrightarrow
+\mathcal{R}_{L_1}(P)\)</span> is functorial (it preserves determination
+morphisms) and is generally a proper subcategory inclusion. ◻</p>
+</div>
+<h1 data-number="14" id="sec:conclusion"><span
+class="header-section-number">14</span> Conclusion</h1>
+<p>We have introduced the <strong>Minimal Runtime Axiom</strong>: the
+principle that a decision reaches runtime if and only if no static
+witness can be constructed for it. We developed the formal apparatus of
+decision spaces, static witnesses <span class="math inline">\(w_d=
+(\tau, \pi, \sigma)\)</span>, and the three corollaries:</p>
+<ol>
+<li><p><strong>Runtime Irreducibility</strong>: The irreducible runtime
+core consists exactly of <span
+class="math inline">\(\omega\)</span>-dependent decisions—those
+depending on user input, I/O, time, and nondeterminism.</p></li>
+<li><p><strong>The Duality</strong>: The size of the runtime set is
+proportional to the epistemic deficit of the type system, providing a
+quantitative metric for language comparison.</p></li>
+<li><p><strong>The Yoneda Correspondence</strong>: Runtime type
+inspection is isomorphic to failure of the Yoneda embedding, connecting
+the axiom to the deepest structures of category theory.</p></li>
+</ol>
+<p>We showed that the axiom unifies a broad range of existing
+work—partial evaluation, multi-stage programming, dependent types,
+linear types, effect systems—under a single design principle. We applied
+it to the design of JAPL, showing how each language feature corresponds
+to a specific decision transfer, and extended it to AI agent
+architecture where design-time type checking replaces runtime capability
+checking.</p>
+<p>We characterized the impossibility boundary: the <span
+class="math inline">\(\omega\)</span>-boundary imposed by genuinely
+unknowable runtime data, and the SRIP boundary imposed by Gödelian
+incompleteness. In practice, the <span
+class="math inline">\(\omega\)</span>-boundary dominates, and the goal
+of language design is to push all non-<span
+class="math inline">\(\omega\)</span> decisions to compile time.</p>
+<p>The axiom provides language designers with a precise and generative
+principle:</p>
+<blockquote>
+<p><em>Every non-<span class="math inline">\(\omega\)</span> decision at
+runtime is a theorem waiting to be proven.</em></p>
+</blockquote>
+<p>The history of programming languages is the history of proving more
+and more of these theorems. The Minimal Runtime Axiom tells us where
+this history is heading and how to measure our progress along the
+way.</p>
+
+    </main>
+  </div>
+
+  <script>
+  function toggleToc() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.querySelector('.mobile-toc-overlay').classList.toggle('open');
+  }
+  // Close TOC on link click (mobile)
+  document.querySelectorAll('.sidebar nav a').forEach(function(a) {
+    a.addEventListener('click', function() {
+      if (window.innerWidth <= 900) { toggleToc(); }
+    });
+  });
+  </script>
+</body>
+</html>
