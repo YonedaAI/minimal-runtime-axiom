@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Minimal Runtime Axiom</title>
+  <meta name="description" content="Runtime is proof of ignorance. A type-theoretic and category-theoretic formalization of the compile-time/runtime boundary.">
+  <meta property="og:title" content="The Minimal Runtime Axiom">
+  <meta property="og:description" content="Runtime is proof of ignorance. Every decision deferred to runtime exists because the type system failed to capture it statically.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://yonedaai.github.io/minimal-runtime-axiom/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Minimal Runtime Axiom">
+  <meta name="twitter:description" content="R(P) = D(P) \ C(P). A formalization of the compile-time/runtime boundary.">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #12121a;
+      --border: #1e1e2e;
+      --text: #e0e0e8;
+      --text-dim: #8888a0;
+      --accent: #7c6ef0;
+      --accent-glow: rgba(124, 110, 240, 0.15);
+      --green: #4ade80;
+      --blue: #60a5fa;
+      --orange: #fb923c;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Hero */
+    .hero {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #7c6ef0, #60a5fa, #4ade80);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+    }
+    .hero .subtitle {
+      font-size: 1.3rem;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+    }
+    .axiom-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      font-family: 'Courier New', monospace;
+      font-size: 1.2rem;
+      color: var(--accent);
+      box-shadow: 0 0 40px var(--accent-glow);
+      margin-bottom: 2rem;
+    }
+    .axiom-box .label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    .links { display: flex; gap: 1rem; margin-top: 1rem; }
+    .links a {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .links a:hover { transform: translateY(-2px); box-shadow: 0 4px 20px var(--accent-glow); }
+    .links .primary { background: var(--accent); color: #fff; }
+    .links .secondary { border: 1px solid var(--border); color: var(--text); }
+
+    /* Sections */
+    section { padding: 5rem 0; }
+    section h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+    section p { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 1rem; }
+
+    /* Cards */
+    .cards { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 2rem; }
+    @media (min-width: 700px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .card:hover { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
+    .card .num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    .card h3 { font-size: 1.15rem; margin-bottom: 0.75rem; }
+    .card p { font-size: 0.92rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* Hierarchy */
+    .hierarchy {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 3rem 0;
+      flex-wrap: wrap;
+    }
+    .stage {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 120px;
+    }
+    .arrow {
+      color: var(--accent);
+      font-size: 1.5rem;
+      padding: 0 0.25rem;
+    }
+    .stage.active { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+
+    /* Author */
+    .author-section {
+      border-top: 1px solid var(--border);
+      padding-top: 3rem;
+      text-align: center;
+    }
+    .author-section .name { font-size: 1.2rem; font-weight: 700; }
+    .author-section .affiliation { color: var(--text-dim); font-size: 0.95rem; }
+    .author-section a { color: var(--accent); text-decoration: none; }
+    .author-section a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header class="hero">
+    <h1>The Minimal Runtime Axiom</h1>
+    <p class="subtitle">Runtime is proof of ignorance. Every decision deferred to runtime exists because the type system failed to capture it statically.</p>
+    <div class="axiom-box">
+      <div class="label">The Axiom</div>
+      R(P) = D(P) \ C(P)<br>
+      where C(P) = { d | exists w<sub>d</sub> = (tau, pi, sigma) }
+    </div>
+    <div class="links">
+      <a href="https://github.com/YonedaAI/minimal-runtime-axiom/blob/main/papers/pdf/minimal-runtime-axiom.pdf" class="primary">Read the Paper (PDF)</a>
+      <a href="https://github.com/YonedaAI/minimal-runtime-axiom" class="secondary">View on GitHub</a>
+    </div>
+  </header>
+
+  <!-- Abstract -->
+  <section class="container">
+    <h2>Abstract</h2>
+    <p>
+      We formalize the principle that <em>runtime is proof of ignorance</em>: every decision
+      that a program defers to runtime exists precisely because the type system failed to
+      capture it at compile time. The <strong>Minimal Runtime Axiom</strong> states that the
+      runtime decision set R(P) is exactly the complement of the compile-time decidable set C(P),
+      where C(P) consists of all decisions admitting a <em>static witness</em>
+      w<sub>d</sub> = (tau, pi, sigma)---a type, a proof term inhabiting that type, and a staging
+      certificate guaranteeing the proof is constructible before execution.
+    </p>
+    <p>
+      We derive three corollaries, develop a full category-theoretic treatment, demonstrate
+      applications to language design through JAPL, and characterize the impossibility boundary
+      through connections to the halting problem, Rice's theorem, and the Self-Reference
+      Incompleteness Principle.
+    </p>
+  </section>
+
+  <!-- Corollaries -->
+  <section class="container">
+    <h2>The Three Corollaries</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="num">Corollary I</div>
+        <h3>Runtime Irreducibility</h3>
+        <p>A decision is legitimately runtime if and only if it depends on omega-data: user input, I/O, time, and nondeterminism. Everything else is a failure of static reasoning.</p>
+      </div>
+      <div class="card">
+        <div class="num">Corollary II</div>
+        <h3>The Duality</h3>
+        <p>|R(P)| is proportional to the epistemic deficit of the type system. More expressive types yield smaller runtime sets---a quantitative metric for language comparison.</p>
+      </div>
+      <div class="card">
+        <div class="num">Corollary III</div>
+        <h3>Yoneda Correspondence</h3>
+        <p>Runtime type inspection (reflection, instanceof, typeof) is isomorphic to failure of the Yoneda embedding. A fully characterized value needs no runtime inspection.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hierarchy -->
+  <section class="container">
+    <h2>The Decision Transfer Hierarchy</h2>
+    <p>Decisions should be transferred as far left as possible. Each arrow represents a decision transfer to an earlier stage.</p>
+    <div class="hierarchy">
+      <div class="stage active">Proof time</div>
+      <div class="arrow">&larr;</div>
+      <div class="stage active">Type-check time</div>
+      <div class="arrow">&larr;</div>
+      <div class="stage active">Compile time</div>
+      <div class="arrow">&larr;</div>
+      <div class="stage">Link time</div>
+      <div class="arrow">&larr;</div>
+      <div class="stage">Runtime</div>
+    </div>
+    <p style="text-align: center; font-style: italic; color: var(--text-dim);">
+      "Every non-omega decision at runtime is a theorem waiting to be proven."
+    </p>
+  </section>
+
+  <!-- Author -->
+  <section class="container author-section">
+    <p class="name">Matthew Long</p>
+    <p class="affiliation">
+      The YonedaAI Collaboration &middot; YonedaAI Research Collective<br>
+      Chicago, IL &middot; <a href="mailto:matthew@yonedaai.com">matthew@yonedaai.com</a>
+    </p>
+    <p style="margin-top: 1rem;">
+      <a href="https://github.com/YonedaAI">GitHub</a>
+    </p>
+  </section>
+
+  <footer>
+    &copy; 2026 YonedaAI Research Collective. The Minimal Runtime Axiom.
+  </footer>
+
+</body>
+</html>
